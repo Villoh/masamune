@@ -1,0 +1,60 @@
+"""Textual terminal UI package and compatibility API."""
+
+from .app import (
+    _EYE_SCHEDULE_LENGTH,
+    MorpheBuilderApp,
+    Preferences,
+    append_build_history,
+    builds_history_path,
+    load_build_history,
+    load_preferences,
+    run_tui,
+    save_preferences,
+    validate_keybindings,
+)
+from .models import Command, DashboardState, PatchListEntry, PatchOptionValue
+from .screens import (
+    AppEditorScreen,
+    BuildContextMenuScreen,
+    BundleAppsScreen,
+    BundleContextMenuScreen,
+    CacheCleanScreen,
+    CacheContextMenuScreen,
+    ConfirmScreen,
+    ContextMenuScreen,
+    LocalSourceScreen,
+    PatchContextMenuScreen,
+    PatchOptionsScreen,
+)
+from .widgets import FullWidthDataTable, PatchListItem, PatchSelectionList
+
+__all__ = [
+    "_EYE_SCHEDULE_LENGTH",
+    "AppEditorScreen",
+    "BuildContextMenuScreen",
+    "BundleAppsScreen",
+    "BundleContextMenuScreen",
+    "CacheCleanScreen",
+    "CacheContextMenuScreen",
+    "Command",
+    "ConfirmScreen",
+    "ContextMenuScreen",
+    "DashboardState",
+    "LocalSourceScreen",
+    "FullWidthDataTable",
+    "MorpheBuilderApp",
+    "PatchContextMenuScreen",
+    "PatchListEntry",
+    "PatchListItem",
+    "PatchOptionValue",
+    "PatchOptionsScreen",
+    "PatchSelectionList",
+    "Preferences",
+    "append_build_history",
+    "builds_history_path",
+    "load_build_history",
+    "load_preferences",
+    "run_tui",
+    "save_preferences",
+    "validate_keybindings",
+]

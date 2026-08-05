@@ -1,0 +1,17 @@
+__pycache__/
+*.egg-info/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.cache/
+cache/
+build/
+downloads/
+morphe.toml
+*.p12
+!/.github/morphe-tui.p12
+*.keystore
+*.apk
+*.aab

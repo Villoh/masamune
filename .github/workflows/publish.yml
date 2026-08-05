@@ -1,0 +1,277 @@
+name: Publish Python package
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Package version (X.Y.Z)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pypi-${{ inputs.version || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      commit: ${{ steps.release.outputs.commit }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          ref: >-
+            ${{
+              github.event_name == 'workflow_dispatch'
+              && github.ref
+              || github.ref_name
+            }}
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9
+        with:
+          version: "0.11.32"
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Bump version, commit, and create package tag
+        id: release
+        env:
+          BASE_REF: >-
+            ${{
+              github.event_name == 'workflow_dispatch'
+              && github.ref
+              || format(
+                'refs/heads/{0}',
+                github.event.repository.default_branch
+              )
+            }}
+          EVENT_NAME: ${{ github.event_name }}
+          VERSION_INPUT: ${{ inputs.version || github.ref_name }}
+        run: |
+          if [[ "$BASE_REF" != refs/heads/* ]]; then
+            echo "release preparation must target a branch" >&2
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == push ]]; then
+            tag="$VERSION_INPUT"
+            version="${tag#v}"
+            test "$tag" != "$version"
+            test "$(git rev-parse "$tag^{commit}")" = "$(git rev-parse HEAD)"
+            git fetch origin "$BASE_REF"
+            branch_commit=$(git rev-parse FETCH_HEAD)
+            tag_commit=$(git rev-parse HEAD)
+            if [[ "$branch_commit" != "$tag_commit" ]]; then
+              echo "package tag must target current default branch head" >&2
+              exit 1
+            fi
+          else
+            version="$VERSION_INPUT"
+            tag="v$version"
+          fi
+          export VERSION="$version"
+
+          uv run python - <<'PY'
+          import os
+          import re
+          import tomllib
+          from pathlib import Path
+
+          version = os.environ["VERSION"]
+          number = r"(0|[1-9][0-9]*)"
+          if not re.fullmatch(rf"{number}\.{number}\.{number}", version):
+              raise SystemExit("version must use bare X.Y.Z")
+
+          path = Path("pyproject.toml")
+          text = path.read_text(encoding="utf-8")
+          current = tomllib.loads(text)["project"]["version"]
+          if version != current:
+              start = text.index("[project]")
+              end = text.find("\n[", start + 1)
+              end = len(text) if end == -1 else end
+              block = text[start:end]
+              old = f'version = "{current}"'
+              if block.count(old) != 1:
+                  raise SystemExit("could not locate project version")
+              updated = block.replace(old, f'version = "{version}"')
+              path.write_text(
+                  text[:start] + updated + text[end:], encoding="utf-8"
+              )
+          PY
+
+          uv lock
+          uv lock --check
+          git diff --check
+          unexpected=$(
+            git diff --name-only |
+              grep -vE '^(pyproject\.toml|uv\.lock)$' || true
+          )
+          if [[ -n "$unexpected" ]]; then
+            echo "version bump changed unexpected files:" >&2
+            echo "$unexpected" >&2
+            exit 1
+          fi
+          if ! git diff --quiet; then
+            for file in pyproject.toml uv.lock; do
+              if git diff --quiet -- "$file"; then
+                echo "$file was not updated" >&2
+                exit 1
+              fi
+            done
+          fi
+
+          uv run python -m unittest discover -s tests
+          uv build
+          uv venv --python 3.13 .release-venv
+          uv pip install --python .release-venv/bin/python dist/*.whl
+          .release-venv/bin/morphe-tui --help >/dev/null
+
+          if [[ "$EVENT_NAME" != push ]] &&
+            git ls-remote --exit-code --tags origin \
+              "refs/tags/$tag" >/dev/null 2>&1; then
+            echo "tag already exists: $tag" >&2
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          changed=false
+          if ! git diff --quiet; then
+            changed=true
+            git add pyproject.toml uv.lock
+            git commit -m "chore(release): bump Python package to $VERSION"
+          fi
+
+          if [[ "$EVENT_NAME" == push && "$changed" == true ]]; then
+            git tag -f -a "$tag" -m "Python package $VERSION"
+            git push --atomic origin \
+              "HEAD:$BASE_REF" "+refs/tags/$tag:refs/tags/$tag"
+          elif [[ "$EVENT_NAME" != push ]]; then
+            git tag -a "$tag" -m "Python package $VERSION"
+            git push --atomic origin "HEAD:$BASE_REF" "refs/tags/$tag"
+          fi
+
+          commit=$(git rev-parse HEAD)
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: prepare
+    if: >-
+      always() && (needs.prepare.result == 'success' ||
+      needs.prepare.result == 'skipped')
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.metadata.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ needs.prepare.outputs.commit || github.sha }}
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9
+        with:
+          version: "0.11.32"
+          python-version: "3.13"
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Verify package tag and metadata
+        id: metadata
+        env:
+          RELEASE_TAG: ${{ needs.prepare.outputs.tag || github.ref_name }}
+        run: |
+          tag_ref="refs/tags/$RELEASE_TAG"
+          git fetch --force origin "$tag_ref:$tag_ref"
+          tag_commit=$(git rev-parse "$RELEASE_TAG^{commit}")
+          test "$tag_commit" = "$(git rev-parse HEAD)"
+          uv run python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          text = Path("pyproject.toml").read_text(encoding="utf-8")
+          version = tomllib.loads(text)["project"]["version"]
+          expected = f"v{version}"
+          if os.environ["RELEASE_TAG"] != expected:
+              raise SystemExit(f"package tag must be {expected}")
+          PY
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+      - run: uv lock --check
+      - run: uv run python -m unittest discover -s tests
+      - run: uv build
+      - name: Verify wheel in clean environment
+        run: |
+          uv venv --python 3.13 .release-venv
+          uv pip install --python .release-venv/bin/python dist/*.whl
+          .release-venv/bin/morphe-tui --help >/dev/null
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: python-package
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/morphe-tui
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: python-package
+          path: dist/
+      - name: Publish with PyPI Trusted Publishing
+        uses: pypa/gh-action-pypi-publish@ba38be9e461d3875417946c167d0b5f3d385a247
+
+  release-notes:
+    needs: [build, publish]
+    if: >-
+      always() && needs.build.result == 'success' &&
+      needs.publish.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.build.outputs.tag || github.sha }}
+      - name: Find previous Python package tag
+        id: previous
+        env:
+          CURRENT_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          previous=$(
+            git describe --tags --match 'v*' --abbrev=0 \
+              "$CURRENT_TAG^{commit}^" 2>/dev/null || true
+          )
+          echo "tag=$previous" >> "$GITHUB_OUTPUT"
+      - name: Create GitHub release notes
+        if: steps.previous.outputs.tag != ''
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          previous_tag: ${{ steps.previous.outputs.tag }}
+          generate_release_notes: true
+      - name: Create initial GitHub release
+        if: steps.previous.outputs.tag == ''
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: ${{ needs.build.outputs.tag }}
+          body: Initial Python package release.
