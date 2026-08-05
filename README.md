@@ -1,24 +1,29 @@
+<!-- markdownlint-disable MD013 -->
+
+<div align="center">
+
+<img src="assets/logo.png" alt="Morphe TUI logo" width="220">
+
 # Morphe TUI
 
-<p align="center">
-  <img src="assets/logo.png" alt="Morphe TUI" width="180">
-</p>
+**Local, verified Morphe APK builds configured and monitored from a terminal UI.**
 
-<p align="center">
-  Terminal-first local frontend for building Morphe APKs from user-supplied files.
-</p>
+[GitHub](https://github.com/Villoh/morphe-tui) | [Releases](https://github.com/Villoh/morphe-tui/releases) | [Issues](https://github.com/Villoh/morphe-tui/issues)
 
-<p align="center">
-  <a href="https://github.com/Villoh/morphe-tui/actions/workflows/ci.yml"><img src="https://github.com/Villoh/morphe-tui/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://pypi.org/project/morphe-tui/"><img src="https://img.shields.io/pypi/v/morphe-tui" alt="PyPI version"></a>
-  <a href="https://github.com/Villoh/morphe-tui/blob/main/LICENSE"><img src="https://img.shields.io/github/license/Villoh/morphe-tui" alt="License"></a>
-</p>
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-FFFFFF?style=for-the-badge&labelColor=000000&logo=python&logoColor=white)](https://www.python.org/)
+[![Java](https://img.shields.io/badge/java-21%2B-FFFFFF?style=for-the-badge&labelColor=000000&logo=openjdk&logoColor=white)](https://openjdk.org/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=for-the-badge&label=managed%20with&labelColor=000000&color=261230)](https://docs.astral.sh/uv/)
 
-Morphe TUI lets users configure, verify, merge, patch, sign, and package Morphe
-builds from local APK and split-APK files.
+</div>
 
-It does **not** download stock APKs from Google Play or fallback providers.
-Original APK splits remain local and are verified before they enter the build.
+---
+
+Morphe TUI is a Textual terminal interface for building Morphe APKs from
+**user-supplied local APK and split-APK files**.
+
+It verifies local inputs, merges splits, resolves Morphe tooling, applies
+patches, signs outputs, and optionally packages modules. It does **not**
+download stock APKs from Google Play or fallback providers.
 
 ## Preview
 
@@ -26,31 +31,45 @@ Original APK splits remain local and are verified before they enter the build.
   <img src="assets/tui-preview.gif" alt="Morphe TUI preview" width="900">
 </p>
 
-## Features
-
-- Native APK and folder picker for local split sets.
-- Local APK verification before merge or patching.
-- Morphe patch discovery, exact patch selection, and patch options.
-- APK and optional Magisk/KernelSU module builds.
-- Background builds with stage, job, and event progress.
-- Verified signing with user-provided or generated keystores.
-- Persistent build history and atomic output publication.
-- Cache inventory and safe cleanup for disposable work.
-- Keyboard-accessible Textual interface with themes and preferences.
-
 ## Requirements
 
-- Python 3.11–3.13
-- Java 21+
-- Local APK or split-APK files
-- Internet access for Morphe toolchain and patch metadata preparation
+| Requirement | Version | Notes |
+| --- | --- | --- |
+| [`Python`](https://www.python.org/) | 3.11–3.13 | Runtime and development support. |
+| [`Java`](https://openjdk.org/) | 21+ | Required by Morphe CLI, APKEditor, and uber-apk-signer. |
+| [`uv`](https://docs.astral.sh/uv/) | latest | Recommended for installation and development. |
+| Local APKs | user-provided | Base APK or complete split set for each build job. |
 
-Morphe CLI, patch bundles, APKEditor, and uber-apk-signer are resolved into the
-user cache when a build starts. Stock APKs are never fetched by this project.
+Windows and Linux are supported. Morphe CLI, patch bundles, APKEditor, and
+uber-apk-signer are prepared in the user cache when a build starts.
+
+## Features
+
+- **Local-only APK input**: native APK and folder pickers; no stock APK
+  downloads.
+- **Input verification**: package identity, version, version code, architecture,
+  split coverage, hashes, and signing certificates are checked before use.
+- **Config-driven builds**: apps, architectures, versions, patch sources, and
+  build modes live in `morphe.toml`.
+- **Morphe patch workflow**: discover patches, select exact patch sets, and edit
+  configurable patch options.
+- **APK and module output**: build patched APKs plus optional deterministic
+  Magisk/KernelSU modules.
+- **Background execution**: current stage, per-job status, redacted events, and
+  build logs remain visible while tools run.
+- **Signing controls**: bundled public template keystore for checkout testing,
+  or a private user keystore for real signing.
+- **Build history**: completed, failed, and cancelled builds remain available
+  with output paths and summaries.
+- **Safe cache cleanup**: inspect cache areas and remove only disposable data.
+- **Atomic publication**: existing outputs are never overwritten; failed builds
+  publish nothing.
+- **Terminal-native UI**: keyboard navigation, command palette, themes, compact
+  sidebar, and reduced-motion support.
 
 ## Install
 
-From a checkout:
+From a source checkout:
 
 ```bash
 uv sync
@@ -64,7 +83,8 @@ uv tool install morphe-tui
 morphe-tui
 ```
 
-`morphe-tui tui` is also available when launch options are needed.
+Running `morphe-tui` without arguments opens the TUI. The explicit
+`morphe-tui tui` form accepts launch options.
 
 ## Configure local APKs
 
@@ -87,12 +107,16 @@ build-mode = "apk"
 include-patches = ["GmsCore support", "SponsorBlock"]
 ```
 
-`source-dir` is optional. If omitted, **Start build** opens a native picker for
-each enabled app. Select either a base/split APK or a folder. Selecting an APK
-stores its containing directory.
+`source-dir` is optional. If omitted, **Start build** asks for a source for
+each enabled app through the native picker:
 
-`source-dir` supports `{arch}`, `{abi}`, and `{module}` placeholders for
-architecture-specific input directories.
+- Select an APK to use its containing directory.
+- Select a folder to use that folder directly.
+- Use `{arch}`, `{abi}`, or `{module}` placeholders for architecture-specific
+  directories.
+
+The TUI writes validated configuration changes atomically. Unsupported TOML
+fields remain safe to edit manually.
 
 ## Launch options
 
@@ -107,10 +131,10 @@ morphe-tui tui \
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `--config PATH` | User config path | Configuration edited by TUI. |
+| `--config PATH` | User config path | Configuration displayed and edited by TUI. |
 | `--cache PATH` | Platform cache root | Toolchain, patch, and build cache. |
-| `--output PATH` | `build` | Published build directories. |
-| `--keystore PATH` | Bundled template in checkout, otherwise generated key | Signing keystore. |
+| `--output PATH` | `build` | Atomic build publication directory. |
+| `--keystore PATH` | Bundled template in checkout; generated key otherwise | Signing keystore. |
 | `--keystore-alias ALIAS` | `morphe-tui` | Signing alias. |
 
 Private keystore passwords are read only from `MORPHE_KEYSTORE_PASSWORD`. They
@@ -121,13 +145,11 @@ are never displayed or stored by TUI.
 | View | Key | Purpose |
 | --- | --- | --- |
 | Dashboard | `1` | Inspect and edit configured applications. |
-| Build | `2` | Review parameters, start builds, and monitor progress. |
+| Build | `2` | Review parameters, start builds, and monitor results. |
 | Builds | `3` | Review persisted build history and outputs. |
 | Patches | `4` | Discover patches and save exact selections. |
-| Cache | `5` | Inspect cache areas and remove disposable work. |
-| Bundles | `6` | Discover applications exposed by a patch source. |
-
-Other shortcuts:
+| Cache | `5` | Inspect cache paths and remove disposable work. |
+| Bundles | `6` | Discover supported applications from patch sources. |
 
 | Key | Action |
 | --- | --- |
@@ -139,31 +161,63 @@ Other shortcuts:
 
 ## Build flow
 
-1. Add or select an app.
-2. Choose a local APK or split directory when prompted.
-3. Review version, architecture, source, keystore, and patches.
-4. Confirm build.
+1. Add or select an application.
+2. Select a local APK or split directory.
+3. Review version, architecture, patches, output, and signing key.
+4. Confirm the build.
 5. TUI verifies inputs, merges splits, applies Morphe patches, signs outputs,
    and publishes verified artifacts atomically.
 
-Build view reports current stage, per-job status, redacted events, output paths,
-and failures. Each completed build contains a `build.log` and provenance data.
-A second build cannot start while one is active.
+Build view reports:
+
+- pending, running, success, failed, and cancelled states;
+- current stage and per-job state;
+- redacted, scrollable subprocess events;
+- output paths and artifact names;
+- `build.log` and provenance files in each published build directory.
+
+Only one build runs at a time. Stop build cancels the active downloader and
+cleans temporary staging; it does not interrupt arbitrary external tools.
+
+## Patch bundles and individual patches
+
+**Bundles** provides discovery data for supported applications from public patch
+sources. Add an application to the dashboard or assign a patch source to an
+existing app without replacing unrelated configuration.
+
+**Patches** resolves the configured source, lists compatible patches, and saves
+an exact selection. Configurable patches expose boolean, numeric, and free-text
+options with upstream defaults and suggestions.
+
+Patch resolution may download Morphe metadata and toolchains into the external
+cache. It never downloads stock APKs.
 
 ## Safety model
 
-- No Google Play or fallback APK downloads.
-- Local APK sets are verified before use.
-- Input splits remain unchanged.
+- No Google Play, APKMirror, Uptodown, or other stock APK downloads.
+- Original local split APKs remain unchanged.
+- APK metadata, hashes, architecture, and signer identity are verified.
 - Existing output directories are never overwritten.
 - Signing keys are protected from cache cleanup.
-- Private passwords and sensitive subprocess output are redacted.
-- Failed builds publish nothing.
+- Sensitive passwords and subprocess output are redacted.
+- Failed builds publish no partial output.
 
-## Documentation
+The bundled template keystore is for local test builds only. It does not prove
+publisher identity. Use a private keystore for distributable builds.
 
-- [`docs/tui.md`](docs/tui.md): interface and workflow reference.
-- [`docs/`](docs/): project documentation.
+## Current limits
+
+The TUI intentionally does not provide:
+
+- credential storage or display;
+- raw/free-form TOML editing;
+- GitLab patch-source assignment;
+- parallel builds;
+- web mode;
+- runtime PNG rendering;
+- hard cancellation of every external subprocess.
+
+Use the CLI or a text editor for automation and unsupported configuration fields.
 
 ## Development
 
@@ -173,6 +227,8 @@ uv run python -m unittest discover -s tests
 uv lock --check
 uv build
 ```
+
+Detailed interface notes live in [`docs/tui.md`](docs/tui.md).
 
 ## License
 
