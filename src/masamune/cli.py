@@ -13,7 +13,7 @@ from .errors import MasamuneUnavailableError
 from .toolchain import default_cache_root
 
 try:
-    __version__ = package_version("masamune")
+    __version__ = package_version("masamune-tui")
 except PackageNotFoundError:
     __version__ = "0.1.0"
 

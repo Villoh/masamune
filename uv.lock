@@ -115,7 +115,7 @@ linkify = [
 ]
 
 [[package]]
-name = "masamune"
+name = "masamune-tui"
 version = "1.0.0"
 source = { editable = "." }
 dependencies = [

@@ -72,7 +72,7 @@ uber-apk-signer are prepared in the user cache when a build starts.
 ### From PyPI
 
 ```bash
-uv tool install masamune
+uv tool install masamune-tui
 masamune
 ```
 
