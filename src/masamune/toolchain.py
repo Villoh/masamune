@@ -19,7 +19,7 @@ from urllib.request import Request, urlopen
 
 from .hashing import sha256_file
 
-USER_AGENT = "morphe-tui"
+USER_AGENT = "masamune"
 PROVENANCE_NAME = "toolchain-provenance.json"
 APKEDITOR_VERSION = "V1.4.9"
 SIGNER_VERSION = "v1.3.0"
@@ -178,10 +178,10 @@ EMBEDDED_APKSIGNER_RE = re.compile(r"lib/apksigner[-_].+\.jar")
 
 def default_cache_root() -> Path:
     if os.name == "nt" and os.environ.get("LOCALAPPDATA"):
-        return Path(os.environ["LOCALAPPDATA"]) / "morphe-tui"
+        return Path(os.environ["LOCALAPPDATA"]) / "masamune"
     if os.environ.get("XDG_CACHE_HOME"):
-        return Path(os.environ["XDG_CACHE_HOME"]) / "morphe-tui"
-    return Path.home() / ".cache" / "morphe-tui"
+        return Path(os.environ["XDG_CACHE_HOME"]) / "masamune"
+    return Path.home() / ".cache" / "masamune"
 
 
 def require_java(minimum: int = 21) -> dict[str, str | int]:
@@ -480,7 +480,7 @@ def apksigner_jar(cache_root: Path | None = None) -> Path:
     ]
     if len(candidates) != 1:
         raise ToolchainError(
-            "apksigner is unavailable; run 'morphe-tui' first"
+            "apksigner is unavailable; run 'masamune' first"
         )
     source = candidates[0]
     metadata = _read_json(source.with_name(f"{source.name}.json"))

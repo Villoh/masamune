@@ -422,7 +422,7 @@ def _module_prop(
         f"name={name}",
         f"version={version}",
         f"versionCode={version_code}",
-        "author=Morphe TUI",
+        "author=Masamune",
         "description=Verified architecture-specific Morphe module",
     ]
     if update_json_url:

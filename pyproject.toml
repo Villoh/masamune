@@ -3,15 +3,16 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "morphe-tui"
+name = "masamune"
 version = "1.0.0"
-description = "Terminal UI for building Morphe artifacts from user-supplied local APKs"
+description = "Masamune terminal UI for building Morphe artifacts from local APKs"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Mikel Villota" }]
+
 requires-python = ">=3.11,<3.14"
-keywords = ["android", "apk", "morphe", "patcher", "tui"]
+keywords = ["android", "apk", "morphe", "patcher", "terminal-ui", "masamune"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Console",
@@ -26,8 +27,12 @@ dependencies = [
   "tomlkit==0.13.2",
 ]
 
+[project.urls]
+Repository = "https://github.com/Villoh/masamune"
+Issues = "https://github.com/Villoh/masamune/issues"
+
 [project.scripts]
-morphe-tui = "morphe_tui.cli:main"
+masamune = "masamune.cli:main"
 
 [tool.uv]
 exclude-newer = "3 days"
@@ -37,4 +42,4 @@ package-dir = { "" = "src" }
 packages = { find = { where = ["src"] } }
 
 [tool.setuptools.package-data]
-morphe_tui = ["tui/*.tcss"]
+masamune = ["tui/*.tcss"]

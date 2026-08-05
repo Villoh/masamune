@@ -164,8 +164,8 @@ def _cache_areas(
         areas.insert(
             -1,
             (
-                "morphe-tui.p12",
-                cache / "morphe-tui.p12",
+                "masamune.p12",
+                cache / "masamune.p12",
                 "Auto-generated signing key",
                 "preserved",
                 True,
@@ -201,9 +201,9 @@ def _binding_key(binding: BindingType) -> str:
 def preference_path() -> Path:
     """Return user-only TUI preference location, outside build inputs."""
     if os.name == "nt" and os.environ.get("APPDATA"):
-        return Path(os.environ["APPDATA"]) / "morphe-tui" / "tui.json"
+        return Path(os.environ["APPDATA"]) / "masamune" / "tui.json"
     root = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return root / "morphe-tui" / "tui.json"
+    return root / "masamune" / "tui.json"
 
 
 def _normalize_binding(key: str) -> str:

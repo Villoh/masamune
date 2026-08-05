@@ -11,7 +11,7 @@ build/
 downloads/
 morphe.toml
 *.p12
-!/.github/morphe-tui.p12
+!/.github/masamune.p12
 *.keystore
 *.apk
 *.aab

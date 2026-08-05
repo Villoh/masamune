@@ -1,6 +1,6 @@
 import unittest
 
-from morphe_tui.config import parse_config
+from masamune.config import parse_config
 
 
 class ConfigTests(unittest.TestCase):

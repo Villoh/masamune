@@ -134,9 +134,9 @@ _DEFAULT_TOOLCHAIN = {
 
 def user_config_path() -> Path:
     if os.name == "nt" and os.environ.get("APPDATA"):
-        return Path(os.environ["APPDATA"]) / "morphe-tui" / "morphe.toml"
+        return Path(os.environ["APPDATA"]) / "masamune" / "morphe.toml"
     root = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
-    return root / "morphe-tui" / "morphe.toml"
+    return root / "masamune" / "morphe.toml"
 
 
 def default_config_path() -> Path:
@@ -151,7 +151,7 @@ def ensure_config_file(path: Path) -> None:
     try:
         with path.open("x", encoding="utf-8") as file:
             file.write(
-                "# Morphe TUI configuration. Add applications from the TUI.\n"
+                "# Masamune configuration. Add applications from the TUI.\n"
             )
     except FileExistsError:
         pass

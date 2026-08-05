@@ -200,7 +200,7 @@ def run_build(
         raise FileExistsError(f"refusing to overwrite build output: {args.output}")
     keystore = args.keystore
     if keystore is None:
-        keystore = args.cache / "morphe-tui.p12"
+        keystore = args.cache / "masamune.p12"
         ensure_user_keystore(keystore, alias=args.keystore_alias)
         password = AUTO_KEYSTORE_PASSWORD
     else:
@@ -735,7 +735,7 @@ def run_clean(
         "removed": removed,
         "preserved": [
             str(cache / name)
-            for name in ("tools", "toolchains", "locks", "morphe-tui.p12")
+            for name in ("tools", "toolchains", "locks", "masamune.p12")
         ],
     }
 

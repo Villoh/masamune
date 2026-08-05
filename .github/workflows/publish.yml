@@ -133,7 +133,7 @@ jobs:
           uv build
           uv venv --python 3.13 .release-venv
           uv pip install --python .release-venv/bin/python dist/*.whl
-          .release-venv/bin/morphe-tui --help >/dev/null
+          .release-venv/bin/masamune --help >/dev/null
 
           if [[ "$EVENT_NAME" != push ]] &&
             git ls-remote --exit-code --tags origin \
@@ -213,7 +213,7 @@ jobs:
         run: |
           uv venv --python 3.13 .release-venv
           uv pip install --python .release-venv/bin/python dist/*.whl
-          .release-venv/bin/morphe-tui --help >/dev/null
+          .release-venv/bin/masamune --help >/dev/null
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: python-package
@@ -226,7 +226,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: pypi
-      url: https://pypi.org/p/morphe-tui
+      url: https://pypi.org/p/masamune
     permissions:
       contents: read
       id-token: write

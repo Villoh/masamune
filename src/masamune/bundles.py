@@ -51,7 +51,7 @@ class _BundleAppAccumulator:
 
 _REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _MAX_JSON_BYTES = 20 * 1024 * 1024
-_USER_AGENT = "morphe-tui"
+_USER_AGENT = "masamune"
 _COMMUNITY_BUNDLES_URL = "https://morphe-patches.software/data/bundles.json"
 
 

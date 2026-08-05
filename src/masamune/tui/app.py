@@ -156,11 +156,11 @@ def remove_build_history_entry(
     return _remove_build_history_entry(timestamp, path or builds_history_path())
 
 
-class MorpheBuilderApp(App[None]):
+class MasamuneApp(App[None]):
     """Dashboard over existing validated build operations."""
 
     CSS_PATH = Path(__file__).with_name("tui.tcss")
-    TITLE = "Morphe TUI"
+    TITLE = "Masamune"
     BINDINGS: ClassVar[list[BindingType]] = list(_BINDINGS)
 
     def __init__(self, args: argparse.Namespace) -> None:
@@ -1554,7 +1554,7 @@ class MorpheBuilderApp(App[None]):
 
     @staticmethod
     def _patch_error(error: BaseException | None) -> str:
-        message = MorpheBuilderApp._describe(error)
+        message = MasamuneApp._describe(error)
         if message == "downloaded SHA-256 mismatch for morphe-patches":
             return (
                 f"{message}. Verify asset independently, then set "
@@ -2115,4 +2115,4 @@ class MorpheBuilderApp(App[None]):
 
 
 def run_tui(args: argparse.Namespace) -> None:
-    MorpheBuilderApp(args).run()
+    MasamuneApp(args).run()

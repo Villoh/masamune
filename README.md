@@ -2,13 +2,13 @@
 
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/Villoh/morphe-tui/main/assets/logo.png" alt="Morphe TUI logo" width="220">
+<img src="https://raw.githubusercontent.com/Villoh/masamune/main/assets/logo.png" alt="Masamune logo" width="220">
 
-# Morphe TUI
+# Masamune
 
 **Local, verified Morphe APK builds configured and monitored from a terminal UI.**
 
-[GitHub](https://github.com/Villoh/morphe-tui) | [Releases](https://github.com/Villoh/morphe-tui/releases) | [Issues](https://github.com/Villoh/morphe-tui/issues)
+[GitHub](https://github.com/Villoh/masamune) | [Releases](https://github.com/Villoh/masamune/releases) | [Issues](https://github.com/Villoh/masamune/issues)
 
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-FFFFFF?style=for-the-badge&labelColor=000000&logo=python&logoColor=white)](https://www.python.org/)
 [![Java](https://img.shields.io/badge/java-21%2B-FFFFFF?style=for-the-badge&labelColor=000000&logo=openjdk&logoColor=white)](https://openjdk.org/)
@@ -18,7 +18,7 @@
 
 ---
 
-Morphe TUI is a Textual terminal interface for building Morphe APKs from
+Masamune is a Textual terminal interface for building Morphe APKs from
 **user-supplied local APK and split-APK files**.
 
 It verifies local inputs, merges splits, resolves Morphe tooling, applies
@@ -28,7 +28,7 @@ download stock APKs from Google Play or fallback providers.
 ## Preview
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Villoh/morphe-tui/main/assets/tui-preview.gif" alt="Morphe TUI preview" width="900">
+  <img src="https://raw.githubusercontent.com/Villoh/masamune/main/assets/tui-preview.gif" alt="Masamune preview" width="900">
 </p>
 
 ## Requirements
@@ -72,21 +72,21 @@ uber-apk-signer are prepared in the user cache when a build starts.
 ### From PyPI
 
 ```bash
-uv tool install morphe-tui
-morphe-tui
+uv tool install masamune
+masamune
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/Villoh/morphe-tui.git
-cd morphe-tui
+git clone https://github.com/Villoh/masamune.git
+cd masamune
 uv sync
-uv run morphe-tui
+uv run masamune
 ```
 
-Running `morphe-tui` without arguments opens the TUI. The explicit
-`morphe-tui tui` form accepts launch options.
+Running `masamune` without arguments opens the TUI. The explicit
+`masamune tui` form accepts launch options.
 
 ## Configure local APKs
 
@@ -123,12 +123,12 @@ fields remain safe to edit manually.
 ## Launch options
 
 ```bash
-morphe-tui tui \
+masamune tui \
   --config morphe.toml \
   --cache /path/to/cache \
   --output build \
-  --keystore /path/outside/repository/morphe-tui.p12 \
-  --keystore-alias morphe-tui
+  --keystore /path/outside/repository/masamune.p12 \
+  --keystore-alias masamune
 ```
 
 | Option | Default | Meaning |
@@ -137,7 +137,7 @@ morphe-tui tui \
 | `--cache PATH` | Platform cache root | Toolchain, patch, and build cache. |
 | `--output PATH` | `build` | Atomic build publication directory. |
 | `--keystore PATH` | Bundled template in checkout; generated key otherwise | Signing keystore. |
-| `--keystore-alias ALIAS` | `morphe-tui` | Signing alias. |
+| `--keystore-alias ALIAS` | `masamune` | Signing alias. |
 
 Private keystore passwords are read only from `MORPHE_KEYSTORE_PASSWORD`. They
 are never displayed or stored by TUI.

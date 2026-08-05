@@ -114,7 +114,7 @@ def create_keystore(
         "-validity",
         "10000",
         "-dname",
-        "CN=Morphe TUI",
+        "CN=Masamune",
         "-storepass:env",
         "MORPHE_KEYSTORE_PASSWORD",
         "-keypass:env",
@@ -136,7 +136,7 @@ def create_keystore(
 # KeystoreManager.DEFAULT: the auto-generated keystore's real protection is
 # its location in the per-user cache directory (like Android's app-private
 # storage), not an unguessable password.
-AUTO_KEYSTORE_PASSWORD = "morphe-tui"
+AUTO_KEYSTORE_PASSWORD = "masamune"
 
 
 def ensure_user_keystore(path: Path, *, alias: str, keytool: str = "keytool") -> None:

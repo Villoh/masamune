@@ -1,30 +1,30 @@
-# Morphe TUI
+# Masamune
 
-Morphe TUI is a Textual interface for configuring and running Morphe builds from
+Masamune is a Textual interface for configuring and running Morphe builds from
 APK files supplied locally by the user.
 
 ## Preview
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Villoh/morphe-tui/main/assets/tui-preview.gif" alt="Morphe TUI preview" width="900">
+  <img src="https://raw.githubusercontent.com/Villoh/masamune/main/assets/tui-preview.gif" alt="Masamune preview" width="900">
 </p>
 
 ## Install and launch
 
 ```bash
 uv sync
-uv run morphe-tui
+uv run masamune
 ```
 
 The explicit launcher accepts configuration options:
 
 ```bash
-uv run morphe-tui tui \
+uv run masamune tui \
   --config morphe.toml \
-  --cache .cache/morphe-tui \
+  --cache .cache/masamune \
   --output build \
-  --keystore .github/morphe-tui.p12 \
-  --keystore-alias morphe-tui
+  --keystore .github/masamune.p12 \
+  --keystore-alias masamune
 ```
 
 ## Local APK sources
@@ -35,7 +35,7 @@ stores its containing directory; selecting a folder stores that folder directly.
 
 Supported placeholders: `{arch}`, `{abi}`, and `{module}`.
 
-Morphe TUI verifies package metadata, version, architecture, hashes, and
+Masamune verifies package metadata, version, architecture, hashes, and
 signing certificates before merging local splits. It does not download stock
 APKs from Google Play or fallback providers.
 

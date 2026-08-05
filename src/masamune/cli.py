@@ -9,16 +9,16 @@ from importlib.metadata import version as package_version
 from pathlib import Path
 
 from .config import default_config_path, ensure_config_file
-from .errors import TuiUnavailableError
+from .errors import MasamuneUnavailableError
 from .toolchain import default_cache_root
 
 try:
-    __version__ = package_version("morphe-tui")
+    __version__ = package_version("masamune")
 except PackageNotFoundError:
     __version__ = "0.1.0"
 
-TEMPLATE_KEYSTORE = Path(__file__).resolve().parents[2] / ".github" / "morphe-tui.p12"
-TEMPLATE_KEYSTORE_PASSWORD = "morphe-tui"
+TEMPLATE_KEYSTORE = Path(__file__).resolve().parents[2] / ".github" / "masamune.p12"
+TEMPLATE_KEYSTORE_PASSWORD = "masamune"
 _SECRET_RE = re.compile(
     r"(?i)\b(authorization|cookie|token|password|dispenser)\b\s*[:=]\s*[^\r\n]*"
 )
@@ -31,14 +31,14 @@ def redact(value: str) -> str:
 
 
 def error_code(error: BaseException) -> int | None:
-    if isinstance(error, TuiUnavailableError):
+    if isinstance(error, MasamuneUnavailableError):
         return 2
     return 1
 
 
 def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(
-        prog="morphe-tui",
+        prog="masamune",
         description="Build Morphe artifacts from APKs supplied locally.",
     )
     root.add_argument("--version", action="version", version="%(prog)s " + __version__)
@@ -56,7 +56,7 @@ def parser() -> argparse.ArgumentParser:
             else None
         ),
     )
-    command.add_argument("--keystore-alias", default="morphe-tui")
+    command.add_argument("--keystore-alias", default="masamune")
     command.set_defaults(handler=_handle_tui)
     return root
 
@@ -66,7 +66,7 @@ def _handle_tui(args: argparse.Namespace) -> None:
         from .tui import run_tui
     except ModuleNotFoundError as error:
         if error.name in {"textual", "rich", "tomlkit"}:
-            raise TuiUnavailableError(
+            raise MasamuneUnavailableError(
                 "TUI dependencies are not installed; run `uv sync` first"
             ) from None
         raise

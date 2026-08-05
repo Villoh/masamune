@@ -23,7 +23,7 @@ _ANTENNAE = _antenna_row()
 def _face(left: str, right: str) -> str:
     """Every row is exactly `_BOX_WIDTH` wide and symmetric on its own, so
     each one centers identically regardless of length mismatches with any
-    text placed alongside it (see `MorpheBuilderApp._splash_content`)."""
+    text placed alongside it (see `MasamuneApp._splash_content`)."""
     return "\n".join((_ANTENNAE, _TOP, _eyes_row(left, right), _BOTTOM))
 
 

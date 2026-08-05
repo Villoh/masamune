@@ -2,7 +2,7 @@
 
 from .app import (
     _EYE_SCHEDULE_LENGTH,
-    MorpheBuilderApp,
+    MasamuneApp,
     Preferences,
     append_build_history,
     builds_history_path,
@@ -42,7 +42,7 @@ __all__ = [
     "DashboardState",
     "LocalSourceScreen",
     "FullWidthDataTable",
-    "MorpheBuilderApp",
+    "MasamuneApp",
     "PatchContextMenuScreen",
     "PatchListEntry",
     "PatchListItem",
