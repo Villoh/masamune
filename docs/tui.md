@@ -6,7 +6,7 @@ APK files supplied locally by the user.
 ## Preview
 
 <p align="center">
-  <img src="../assets/tui-preview.gif" alt="Morphe TUI preview" width="900">
+  <img src="https://raw.githubusercontent.com/Villoh/morphe-tui/main/assets/tui-preview.gif" alt="Morphe TUI preview" width="900">
 </p>
 
 ## Install and launch

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="assets/logo.png" alt="Morphe TUI logo" width="220">
+<img src="https://raw.githubusercontent.com/Villoh/morphe-tui/main/assets/logo.png" alt="Morphe TUI logo" width="220">
 
 # Morphe TUI
 
@@ -28,7 +28,7 @@ download stock APKs from Google Play or fallback providers.
 ## Preview
 
 <p align="center">
-  <img src="assets/tui-preview.gif" alt="Morphe TUI preview" width="900">
+  <img src="https://raw.githubusercontent.com/Villoh/morphe-tui/main/assets/tui-preview.gif" alt="Morphe TUI preview" width="900">
 </p>
 
 ## Requirements
