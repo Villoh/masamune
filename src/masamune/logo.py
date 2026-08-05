@@ -1,6 +1,6 @@
 """Hand-drawn Unicode Android logo for terminal-safe rendering."""
 
-_BOX_WIDTH = 10  # "╭" + 8 dashes + "╮" — even, matching "MORPHE BUILDER"'s
+_BOX_WIDTH = 10  # "╭" + 8 dashes + "╮" — even for centered Masamune splash
 # length parity so the splash centers exactly (see `_splash_content`).
 
 

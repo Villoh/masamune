@@ -212,7 +212,7 @@ class MasamuneApp(App[None]):
         with Horizontal(id="topbar"):
             yield Static(LOGO_SMALL_FRAMES[0], id="header-logo", markup=False)
             with Vertical(id="header-meta"):
-                yield Static(f"MORPHE TUI v{__version__}", id="header-title")
+                yield Static(f"MASAMUNE v{__version__}", id="header-title")
                 yield Static(
                     "No configuration loaded", id="header-config", markup=False
                 )
@@ -428,7 +428,7 @@ class MasamuneApp(App[None]):
         makes every line the same length, which keeps them aligned no
         matter how Rich rounds.
         """
-        lines = (*logo.splitlines(), "", "MORPHE TUI")
+        lines = (*logo.splitlines(), "", "MASAMUNE")
         width = max(len(line) for line in lines)
         return "\n".join(line.center(width) for line in lines)
 
