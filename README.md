@@ -69,18 +69,20 @@ uber-apk-signer are prepared in the user cache when a build starts.
 
 ## Install
 
-From a source checkout:
-
-```bash
-uv sync
-uv run morphe-tui
-```
-
-After PyPI publication:
+### From PyPI
 
 ```bash
 uv tool install morphe-tui
 morphe-tui
+```
+
+### From source
+
+```bash
+git clone https://github.com/Villoh/morphe-tui.git
+cd morphe-tui
+uv sync
+uv run morphe-tui
 ```
 
 Running `morphe-tui` without arguments opens the TUI. The explicit
