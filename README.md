@@ -19,11 +19,11 @@
 ---
 
 Masamune is a Textual terminal interface for building Morphe APKs from
-**user-supplied local APK and split-APK files**.
+local APK/split inputs or verified stock downloads.
 
-It verifies local inputs, merges splits, resolves Morphe tooling, applies
-patches, signs outputs, and optionally packages modules. Explicit verified stock
-downloads live in separate Downloads view; Start build never downloads.
+It verifies inputs, merges splits, resolves Morphe tooling, applies patches,
+signs outputs, and optionally packages modules. Downloads are explicit; Start
+build never performs network activity.
 
 ## Preview
 
@@ -38,7 +38,6 @@ downloads live in separate Downloads view; Start build never downloads.
 | [`Python`](https://www.python.org/) | 3.11–3.13 | Runtime and development support. |
 | [`Java`](https://openjdk.org/) | 21+ | Required by Morphe CLI, APKEditor, and uber-apk-signer. |
 | [`uv`](https://docs.astral.sh/uv/) | latest | Recommended for installation and development. |
-| Local APKs | user-provided | Base APK or complete split set for each build job. |
 
 Windows and Linux are supported. Morphe CLI, patch bundles, APKEditor, and
 uber-apk-signer are prepared in the user cache when a build starts.
@@ -46,8 +45,8 @@ uber-apk-signer are prepared in the user cache when a build starts.
 ## Features
 
 - **Local APK input**: native APK and folder pickers; build input stays local-only.
-- **Explicit verified downloads**: Google Play → APKMirror → Direct, never started
-  by Build and never assigned automatically to `source-dir`.
+- **Explicit verified downloads**: Google Play → APKMirror → Direct, available from
+  Downloads and tracked in the Downloaded library view.
 - **Input verification**: package identity, version, version code, architecture,
   split coverage, hashes, and signing certificates are checked before use.
 - **Config-driven builds**: apps, architectures, versions, patch sources, and
@@ -110,13 +109,15 @@ build-mode = "apk"
 include-patches = ["GmsCore support", "SponsorBlock"]
 ```
 
-`source-dir` is optional. If omitted, **Start build** asks for a source for
-each enabled app through the native picker:
+`source-dir` is optional. Build source precedence is:
 
-- Select an APK to use its containing directory.
-- Select a folder to use that folder directly.
-- Use `{arch}`, `{abi}`, or `{module}` placeholders for architecture-specific
-  directories.
+1. Configured `source-dir`.
+2. Matching verified APK/split set from Downloads.
+3. Native picker if no verified download exists.
+
+Select an APK to use its containing directory, or select a folder directly.
+Use `{arch}`, `{abi}`, or `{module}` placeholders for architecture-specific
+local directories.
 
 The TUI writes validated configuration changes atomically. Unsupported TOML
 fields remain safe to edit manually.
@@ -149,11 +150,12 @@ are never displayed or stored by TUI.
 | --- | --- | --- |
 | Dashboard | `1` | Inspect and edit configured applications. |
 | Bundles | `2` | Discover supported applications from patch sources. |
-| Downloads | `3` | Download verified stock APKs to a selected folder. |
-| Build | `4` | Review parameters, start builds, and monitor results. |
-| Builds | `5` | Review persisted build history and outputs. |
-| Patches | `6` | Discover patches and save exact selections. |
-| Cache | `7` | Inspect cache paths and remove disposable work. |
+| Downloads | `3` | Resolve versions and download verified stock APKs. |
+| Downloaded | `4` | Browse, verify, open, and delete downloaded APK sets. |
+| Build | `5` | Review parameters, start builds, and monitor results. |
+| Builds | `6` | Review persisted build history and outputs. |
+| Patches | `7` | Discover patches and save exact selections. |
+| Cache | `8` | Inspect cache paths and remove disposable work. |
 
 | Key | Action |
 | --- | --- |
@@ -167,20 +169,23 @@ are never displayed or stored by TUI.
 
 Downloads require an explicit action in Downloads (`3`). User can choose
 Automatic (Google Play → APKMirror → Direct), Google Play, APKMirror, or Direct.
-Destination defaults to `%LOCALAPPDATA%\\masamune` on Windows and can be changed
-or reset. Downloads view resolves versions from Morphe patch compatibility and
-lets user choose any supported version manually. Credentials come from goopdl
+Destination is fixed at `%LOCALAPPDATA%\\masamune\\downloads` on Windows
+(and the platform data equivalent). Downloads view resolves versions from Morphe
+patch compatibility and lets the user choose any supported version manually.
+The Downloaded view lists verified APK/split sets and supports opening, verifying,
+and deleting them. Credentials come from goopdl
 environment variables and never appear
 in TUI, logs, or provenance. Press `Resolve versions` to query Morphe patch
-compatibility, then choose a supported version manually. Every result is independently verified before
-atomic publication. Select its folder manually in Build afterward; `source-dir`
-is never changed automatically.
+compatibility, then choose a supported version manually. Every result is independently
+verified before atomic publication. Builds can use matching downloaded sources
+automatically when `source-dir` is not configured; configuration is never changed
+implicitly.
 
 ## Build flow
 
 1. Add or select an application.
-2. Select a local APK or split directory.
-3. Review version, architecture, patches, output, and signing key.
+2. Configure `source-dir`, or download a verified stock APK/split set.
+3. Review source, version, architecture, patches, output, and signing key.
 4. Confirm the build.
 5. TUI verifies inputs, merges splits, applies Morphe patches, signs outputs,
    and publishes verified artifacts atomically.
