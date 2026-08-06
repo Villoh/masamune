@@ -32,12 +32,12 @@ _COMMANDS = (
     Command("help", "?", "show_help", "Key help", "Toggle available keys"),
     Command("sidebar", "ctrl+b", "toggle_sidebar", "Sidebar", "Collapse sidebar"),
     Command("dashboard", "1", "show_dashboard", "Dashboard", "Show dashboard"),
-    Command("build_matrix", "2", "show_build_matrix", "Build", "Show build view"),
-    Command("builds", "3", "show_builds", "Builds", "Show build history"),
-    Command("patches", "4", "show_patches", "Patches", "List compatible patches"),
-    Command("cache", "5", "show_cache", "Cache", "Show cache controls"),
-    Command("bundles", "6", "show_bundles", "Bundles", "Browse patch sources"),
-    Command("downloads", "7", "show_downloads", "Downloads", "Download verified stock"),
+    Command("bundles", "2", "show_bundles", "Bundles", "Browse patch sources"),
+    Command("downloads", "3", "show_downloads", "Downloads", "Download verified stock"),
+    Command("build_matrix", "4", "show_build_matrix", "Build", "Show build view"),
+    Command("builds", "5", "show_builds", "Builds", "Show build history"),
+    Command("patches", "6", "show_patches", "Patches", "List compatible patches"),
+    Command("cache", "7", "show_cache", "Cache", "Show cache controls"),
     Command("theme", "t", "change_theme", "Theme", "Choose theme"),
     Command("quit", "q", "quit", "Quit", "Quit TUI"),
 )
@@ -69,11 +69,11 @@ _RESERVED_BINDINGS = frozenset(
 _VIEWS = (
     ("dashboard", "Dashboard", "▦"),
     ("bundles", "Bundles", "≡"),
+    ("downloads", "Downloads", "⇩"),
     ("build", "Build", "▶"),
     ("builds", "Builds", "▤"),
     ("patches", "Patches", "≡"),
     ("cache", "Cache", "▣"),
-    ("downloads", "Downloads", "⇩"),
 )
 _EYE_SCHEDULE_LENGTH = 12
 _THEME_NAMES = ("morphe-dark", "morphe-light", "morphe-high-contrast")

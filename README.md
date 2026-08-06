@@ -148,12 +148,12 @@ are never displayed or stored by TUI.
 | View | Key | Purpose |
 | --- | --- | --- |
 | Dashboard | `1` | Inspect and edit configured applications. |
-| Build | `2` | Review parameters, start builds, and monitor results. |
-| Builds | `3` | Review persisted build history and outputs. |
-| Patches | `4` | Discover patches and save exact selections. |
-| Cache | `5` | Inspect cache paths and remove disposable work. |
-| Bundles | `6` | Discover supported applications from patch sources. |
-| Downloads | `7` | Download verified stock APKs to a selected folder. |
+| Bundles | `2` | Discover supported applications from patch sources. |
+| Downloads | `3` | Download verified stock APKs to a selected folder. |
+| Build | `4` | Review parameters, start builds, and monitor results. |
+| Builds | `5` | Review persisted build history and outputs. |
+| Patches | `6` | Discover patches and save exact selections. |
+| Cache | `7` | Inspect cache paths and remove disposable work. |
 
 | Key | Action |
 | --- | --- |
@@ -165,7 +165,7 @@ are never displayed or stored by TUI.
 
 ## Download flow
 
-Downloads require an explicit action in Downloads (`7`). Fixed provider order is
+Downloads require an explicit action in Downloads (`3`). Fixed provider order is
 Google Play → APKMirror → Direct. Credentials come from goopdl environment
 variables and never appear in TUI, logs, or provenance. Every result is
 independently verified before atomic publication. Select its folder manually in

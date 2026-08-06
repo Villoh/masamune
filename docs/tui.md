@@ -44,12 +44,12 @@ from the explicit Downloads view; Start build remains local-only.
 | View | Key | Purpose |
 | --- | --- | --- |
 | Dashboard | `1` | Inspect and edit applications. |
-| Build | `2` | Review and run builds. |
-| Builds | `3` | Review build history and outputs. |
-| Patches | `4` | Discover and select exact patches. |
-| Cache | `5` | Inspect and clean disposable cache data. |
-| Bundles | `6` | Discover supported applications. |
-| Downloads | `7` | Download verified stock APKs to a user-selected folder. |
+| Bundles | `2` | Discover supported applications. |
+| Downloads | `3` | Download verified stock APKs to a user-selected folder. |
+| Build | `4` | Review and run builds. |
+| Builds | `5` | Review build history and outputs. |
+| Patches | `6` | Discover and select exact patches. |
+| Cache | `7` | Inspect and clean disposable cache data. |
 
 `Ctrl+B` toggles the compact sidebar. `Ctrl+P` opens the command palette. `T`
 opens the theme selector. `?` shows available keys. `Q` quits.
@@ -60,7 +60,7 @@ Downloads use fixed order: Google Play → APKMirror → Direct. Google credenti
 come from goopdl environment variables; TUI never displays secrets. Direct URLs
 are explicit HTTPS inputs and show their host before confirmation.
 
-1. Open Downloads (`7`).
+1. Open Downloads (`3`).
 2. Select configured app, explicit version, architecture, and destination folder.
 3. Confirm download. Only this action starts network activity.
 4. Masamune verifies package, version, splits, ABI, signer, hashes, and provenance.
