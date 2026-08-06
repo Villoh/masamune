@@ -185,6 +185,46 @@ class BundleContextMenuScreen(_ContextMenuScreen):
         self.dismiss(None)
 
 
+class DownloadContextMenuScreen(_ContextMenuScreen):
+    """Actions for one downloaded APK set."""
+
+    menu_id = "download-context-menu"
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding("escape", "cancel", "Cancel", show=False)
+    ]
+
+    def __init__(self, label: str, position: tuple[int, int] | None = None) -> None:
+        super().__init__()
+        self.label = label
+        self.position = position
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="download-context-menu"):
+            yield Static(self.label, id="download-context-title", markup=False)
+            yield OptionList(
+                Option("▣  Open folder", id="open"),
+                Option("✓  Verify", id="verify"),
+                Option("✕  Delete", id="delete"),
+                id="download-context-options",
+            )
+
+    def on_mount(self) -> None:
+        if self.position is None:
+            return
+        self.add_class("at-pointer")
+        x, y = self.position
+        self.query_one("#download-context-menu").styles.offset = (
+            max(0, min(x, self.size.width - 38)),
+            max(0, min(y, self.size.height - 8)),
+        )
+
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
+        self.dismiss(event.option.id)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
 class ContextMenuScreen(_ContextMenuScreen):
     """Compact row action menu opened by right click or Enter."""
 
@@ -457,6 +497,62 @@ class LocalSourceScreen(ModalScreen[Path | None]):
         self.dismiss(None)
 
 
+class DownloadVersionsScreen(ModalScreen[str | None]):
+    """Choose one patch-compatible version for an explicit download."""
+
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding("escape", "cancel", "Cancel", show=False)
+    ]
+
+    def __init__(
+        self,
+        app_name: str,
+        package: str,
+        versions: Sequence[str],
+        selected: str | None,
+    ) -> None:
+        super().__init__()
+        self.app_name = app_name
+        self.package = package
+        self.versions = tuple(versions)
+        self.selected = selected if selected in self.versions else self.versions[0]
+
+    def compose(self) -> ComposeResult:
+        with Vertical(id="download-version-dialog"):
+            yield Static("Patch-compatible versions", classes="modal-title")
+            yield Static(
+                f"{self.app_name} · {self.package}",
+                id="download-version-dialog-app",
+                markup=False,
+            )
+            yield Label("Select version")
+            yield Select(
+                ((version, version) for version in self.versions),
+                value=self.selected,
+                id="download-version-choice",
+            )
+            yield Static(
+                "Only versions supported by selected Morphe patches are shown.",
+                id="download-version-dialog-hint",
+                markup=False,
+            )
+            with Horizontal(classes="modal-actions"):
+                yield Button(
+                    "Use version", id="use-download-version", variant="primary"
+                )
+                yield Button("Cancel", id="cancel-download-version")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "use-download-version":
+            value = self.query_one("#download-version-choice", Select).value
+            self.dismiss(None if value is Select.BLANK else str(value))
+        elif event.button.id == "cancel-download-version":
+            self.dismiss(None)
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
+
+
 class ConfirmScreen(ModalScreen[bool]):
     """Confirmation for destructive or reviewed actions."""
 
@@ -670,6 +766,35 @@ class AppEditorScreen(ModalScreen[dict[str, str] | None]):
             yield Input(
                 self.values.get("patched-package", ""), id="edit-patched-package"
             )
+            yield Label("Expected signer SHA-256 (optional)")
+            yield Input(
+                self.values.get("expected-signer", ""), id="edit-expected-signer"
+            )
+            yield Label("Downloader settings (optional)", classes="field-section")
+            yield Label("Google Play profile")
+            yield Input(
+                self.values.get("google-play-profile", ""), id="edit-google-profile"
+            )
+            yield Label("Google Play country")
+            yield Input(
+                self.values.get("google-play-country", ""), id="edit-google-country"
+            )
+            yield Label("Google Play proxy")
+            yield Input(
+                self.values.get("google-play-proxy", ""), id="edit-google-proxy"
+            )
+            yield Label("Google Play dispenser")
+            yield Input(
+                self.values.get("google-play-dispenser", ""), id="edit-google-dispenser"
+            )
+            yield Label("APKMirror URLs (comma-separated)")
+            yield Input(
+                self.values.get("fallback-apkmirror", ""), id="edit-fallback-apkmirror"
+            )
+            yield Label("Direct APK URLs (comma-separated)")
+            yield Input(
+                self.values.get("fallback-direct", ""), id="edit-fallback-direct"
+            )
             yield Label("Local APK source (optional)")
             with Vertical(id="source-picker-row"):
                 yield Static(
@@ -725,9 +850,7 @@ class AppEditorScreen(ModalScreen[dict[str, str] | None]):
         if event.button.id in {"choose-app-source-apk", "choose-app-source-folder"}:
             try:
                 path = choose_source(
-                    "apk"
-                    if event.button.id == "choose-app-source-apk"
-                    else "folder"
+                    "apk" if event.button.id == "choose-app-source-apk" else "folder"
                 )
             except Exception as error:
                 self.query_one("#editor-error", Static).update(
@@ -747,6 +870,17 @@ class AppEditorScreen(ModalScreen[dict[str, str] | None]):
             ).lower(),
             "slug": self.query_one("#edit-slug", Input).value,
             "patched-package": self.query_one("#edit-patched-package", Input).value,
+            "expected-signer": self.query_one("#edit-expected-signer", Input).value,
+            "google-play-profile": self.query_one("#edit-google-profile", Input).value,
+            "google-play-country": self.query_one("#edit-google-country", Input).value,
+            "google-play-proxy": self.query_one("#edit-google-proxy", Input).value,
+            "google-play-dispenser": self.query_one(
+                "#edit-google-dispenser", Input
+            ).value,
+            "fallback-apkmirror": self.query_one(
+                "#edit-fallback-apkmirror", Input
+            ).value,
+            "fallback-direct": self.query_one("#edit-fallback-direct", Input).value,
             "source-dir": self.source_dir,
             "version": self.query_one("#edit-version", Input).value,
             "build-mode": str(self.query_one("#edit-build-mode", Select).value),

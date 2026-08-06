@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import ClassVar
 
-from rich.text import Text
+from rich.text import Text  # pyright: ignore[reportMissingImports]
 from textual import events  # pyright: ignore[reportMissingImports]
 from textual.app import ComposeResult  # pyright: ignore[reportMissingImports]
 from textual.binding import (  # pyright: ignore[reportMissingImports]

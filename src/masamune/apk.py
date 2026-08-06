@@ -515,7 +515,7 @@ def write_provenance(
     version_name, version_code = base.version_name, base.version_code
     provenance = {
         "schema_version": 2,
-        "provider": "local",
+        "provider": "google-play",
         "inspection_tools": {
             "axml": package_version("axml"),
             "apksigner": APKSIGNER_VERSION,

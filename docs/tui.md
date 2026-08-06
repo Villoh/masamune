@@ -36,22 +36,43 @@ stores its containing directory; selecting a folder stores that folder directly.
 Supported placeholders: `{arch}`, `{abi}`, and `{module}`.
 
 Masamune verifies package metadata, version, architecture, hashes, and
-signing certificates before merging local splits. It does not download stock
-APKs from Google Play or fallback providers.
+signing certificates before merging local splits. Downloads are available only
+from the explicit Downloads view; Start build remains local-only.
 
 ## Navigation
 
 | View | Key | Purpose |
 | --- | --- | --- |
 | Dashboard | `1` | Inspect and edit applications. |
-| Build | `2` | Review and run builds. |
-| Builds | `3` | Review build history and outputs. |
-| Patches | `4` | Discover and select exact patches. |
-| Cache | `5` | Inspect and clean disposable cache data. |
-| Bundles | `6` | Discover supported applications. |
+| Bundles | `2` | Discover supported applications. |
+| Downloads | `3` | Download verified stock APKs to a user-selected folder. |
+| Build | `4` | Review and run builds. |
+| Builds | `5` | Review build history and outputs. |
+| Patches | `6` | Discover and select exact patches. |
+| Cache | `7` | Inspect and clean disposable cache data. |
 
 `Ctrl+B` toggles the compact sidebar. `Ctrl+P` opens the command palette. `T`
 opens the theme selector. `?` shows available keys. `Q` quits.
+
+## Download flow
+
+Downloads offer Automatic (Google Play → APKMirror → Direct), Google Play,
+APKMirror, or Direct. Google credentials come from goopdl environment
+variables; TUI never displays secrets. Direct URLs are explicit HTTPS inputs and
+show their host before confirmation.
+
+Destination defaults to `%LOCALAPPDATA%\\masamune` on Windows. Choose another
+folder or reset default at any time. Resolve versions from Morphe patch
+compatibility, then choose one manually; the selected version is passed to the
+provider.
+
+1. Open Downloads (`3`).
+2. Select configured app, then press `Resolve versions`.
+3. Choose provider, compatible version, architecture, and destination folder.
+4. Confirm download. Stock download starts only after confirmation.
+5. Masamune verifies package, version, splits, ABI, signer, hashes, and provenance.
+6. Select the resulting folder manually in Build. Download never changes
+   `source-dir` and never starts a build.
 
 ## Build flow
 
@@ -80,4 +101,4 @@ shown or persisted by TUI.
 ## Current limits
 
 TUI does not provide credential storage, raw TOML editing, hard cancellation of
-running subprocesses, parallel builds, web mode, or runtime image rendering.
+non-goopdl tools, parallel builds, web mode, or runtime image rendering.

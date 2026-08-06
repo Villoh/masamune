@@ -33,11 +33,15 @@ from .bundles import (  # pyright: ignore[reportMissingImports]
 )
 from .cli import redact  # pyright: ignore[reportMissingImports]
 from .compatibility import (
+    confirm_version_code,
     parse_patch_list,
+    resolve_version_code_candidate,
     run_morphe_action,
     run_morphe_compatibility,
 )
 from .config import (
+    FallbackConfig,
+    GooglePlayConfig,
     ToolchainConfig,
     app_include_experimental_versions,
     app_include_universal_patches,
@@ -55,6 +59,20 @@ from .merge import (
     write_selection_manifest,
 )
 from .module import build_module
+from .paths import default_download_path
+from .providers import (
+    ProviderRequest,
+    ProviderResult,
+    VersionUnavailable,
+    fallback_download,
+    providers_for,
+)
+from .providers.apkmirror import (
+    resolve_apkmirror_version_code,
+    resolve_apkmirror_version_code_for_package,
+)
+from .providers.errors import ProviderAmbiguous, ProviderUnavailable
+from .providers.google_play import GooglePlayProvider
 from .release_notes import render_release_notes
 from .toolchain import (
     PreparedToolchain,
@@ -62,13 +80,6 @@ from .toolchain import (
     apksigner_jar,
     prepare_toolchain,
 )
-
-
-@dataclass(frozen=True)
-class ProviderResult:
-    provider: str
-    directory: Path
-    provenance: Path
 
 
 @dataclass(frozen=True)
@@ -158,10 +169,178 @@ class Reporter:
             print(line, file=sys.stderr)
 
 
-def _source_directory(job: Any) -> Path:
+def run_download(
+    request: ProviderRequest,
+    *,
+    cache: Path,
+    google_play: GooglePlayConfig,
+    fallbacks: FallbackConfig,
+    reporter: Reporter | None = None,
+    cancel_event: Event | None = None,
+    provider_name: str = "automatic",
+) -> ProviderResult:
+    """Download and publish one verified APK set outside build orchestration."""
+    reporter = reporter or Reporter()
+    if cancel_event is not None and cancel_event.is_set():
+        raise BuildCancelled("download cancelled by user")
+    if provider_name not in {"automatic", "google-play", "apkmirror", "direct"}:
+        raise ValueError(f"unsupported provider: {provider_name}")
+    candidate = (
+        resolve_version_code_candidate(
+            cache,
+            package=request.package,
+            version_name=request.version_name or "",
+            arch=request.arch,
+            profile=google_play.profile,
+            region=google_play.country,
+            explicit_version_code=request.version_code,
+            fallback_metadata=(
+                lambda *_: _apkmirror_version_code_hint(
+                    fallbacks.apkmirror,
+                    version_name=request.version_name or "",
+                    arch=request.arch,
+                    reporter=reporter,
+                    package=request.package,
+                )
+            ),
+        )
+        if request.version_name is not None and provider_name == "automatic"
+        else None
+    )
+    resolved_request = ProviderRequest(
+        request.package,
+        request.version_name,
+        candidate.version_code if candidate is not None else request.version_code,
+        request.arch,
+        request.output,
+        request.expected_signer,
+    )
+    reporter.event(
+        "download",
+        "preparing verified stock",
+        package=request.package,
+        arch=request.arch,
+        destination=request.output,
+    )
+    available_providers = providers_for(
+        GooglePlayProvider(
+            profile=google_play.profile,
+            region=google_play.country,
+            dispenser=google_play.dispenser,
+            proxy=google_play.proxy,
+        ),
+        direct=fallbacks.direct,
+        apkmirror=fallbacks.apkmirror,
+    )
+    providers = (
+        available_providers
+        if provider_name == "automatic"
+        else tuple(item for item in available_providers if item.name == provider_name)
+    )
+    provider = fallback_download(resolved_request, providers)
+    if cancel_event is not None and cancel_event.is_set():
+        raise BuildCancelled("download cancelled by user")
+    source = _read_json(provider.provenance, "source provenance")
+    version = source.get("version")
+    if (
+        not isinstance(version, dict)
+        or not isinstance(version.get("name"), str)
+        or (
+            request.version_name is not None
+            and version.get("name") != request.version_name
+        )
+        or not isinstance(version.get("code"), str)
+    ):
+        raise IntegrityMetadataError("source provenance version mismatch")
+    version_name = version["name"]
+    version_code = version["code"]
+    if request.version_name is not None:
+        confirm_version_code(
+            cache,
+            package=request.package,
+            version_name=version_name,
+            arch=request.arch,
+            profile=google_play.profile,
+            region=google_play.country,
+            version_code=version_code,
+        )
+    metadata = verify_apk_set(
+        provider.directory,
+        request.package,
+        version_name=request.version_name,
+        version_code=version_code,
+        arch=request.arch,
+        expected_signer=request.expected_signer,
+    )
+    reporter.event(
+        "download",
+        "trusted stock acquired",
+        package=request.package,
+        arch=request.arch,
+        provider=provider.provider,
+        version=version.get("name"),
+        version_code=version_code,
+        files=len(metadata),
+    )
+    return provider
+
+
+def _downloaded_source_directory(job: Any, root: Path) -> Path | None:
+    architecture = Architecture.from_config(job.arch)
+    app_root = root / job.app.slug
+    if not app_root.is_dir() or app_root.is_symlink():
+        return None
+    candidates: list[Path] = []
+    for version_root in app_root.iterdir():
+        if not version_root.is_dir() or version_root.is_symlink():
+            continue
+        if job.app.version != "auto" and version_root.name != job.app.version:
+            continue
+        path = version_root / architecture.value
+        provenance = path / "provenance.json"
+        if not path.is_dir() or path.is_symlink() or not provenance.is_file():
+            continue
+        try:
+            data = _read_json(provenance, "download provenance")
+            version = data.get("version")
+            if (
+                data.get("package") != job.app.package
+                or not isinstance(version, dict)
+                or version.get("name") != version_root.name
+                or not isinstance(version.get("code"), str)
+            ):
+                continue
+            verify_apk_set(
+                path,
+                job.app.package,
+                version_name=version_root.name,
+                version_code=version["code"],
+                arch=architecture.goopdl,
+                expected_signer=job.app.expected_signer,
+            )
+        except (IntegrityMetadataError, OSError, ValueError):
+            continue
+        candidates.append(path)
+    if len(candidates) > 1:
+        raise BuildError(
+            f"multiple verified downloads found for {job.app.package} {architecture.value}; "
+            "configure source-dir or remove extra versions"
+        )
+    return candidates[0] if candidates else None
+
+
+def _source_directory(job: Any, *, download_root: Path | None = None) -> Path:
     template = job.app.source_dir
     if not template:
-        raise BuildError(f"local APK directory required for {job.app.package}")
+        if download_root is not None:
+            for root in (download_root, download_root.parent):
+                source = _downloaded_source_directory(job, root)
+                if source is not None:
+                    return source
+        raise BuildError(
+            f"local APK directory required for {job.app.package}; "
+            "no verified download found"
+        )
     architecture = Architecture.from_config(job.arch)
     value = template.format(
         arch=architecture.value,
@@ -174,8 +353,8 @@ def _source_directory(job: Any) -> Path:
     return path
 
 
-def _local_version_name(job: Any) -> str:
-    source = _source_directory(job)
+def _local_version_name(job: Any, *, download_root: Path | None = None) -> str:
+    source = _source_directory(job, download_root=download_root)
     metadata = verify_apk_set(
         source,
         job.app.package,
@@ -222,7 +401,9 @@ def run_build(
             if cancel_event is not None and cancel_event.is_set():
                 raise BuildCancelled("build cancelled by user")
             toolchain = _toolchain(toolchains[app_toolchain(job.app, config.toolchain)])
-            source_version = _local_version_name(job)
+            source_version = _local_version_name(
+                job, download_root=default_download_path()
+            )
             reporter.event(
                 "resolve",
                 "resolving compatible version",
@@ -412,7 +593,9 @@ def _obtain_verified_source(
     reporter: Reporter,
 ) -> tuple[ProviderResult, list[ApkMetadata], str]:
     del trusted
-    source_directory = _source_directory(job)
+    source_directory = _source_directory(
+        job, download_root=default_download_path()
+    )
     reporter.event(
         "source",
         "verifying local APK set",
@@ -464,7 +647,11 @@ def _obtain_verified_source(
             package=job.app.package,
             certificate_sha256=",".join(metadata[0].signers_sha256),
         )
-    return ProviderResult("local", source_directory, provenance_path), metadata, base.version_code
+    return (
+        ProviderResult("local", source_directory, provenance_path),
+        metadata,
+        base.version_code,
+    )
 
 
 def _merge_and_sign_stock(
@@ -599,6 +786,54 @@ def run_verify(
         "version": {"name": base.version_name, "code": base.version_code},
         "architecture": arch,
         "files": len(metadata),
+    }
+
+
+def run_download_versions(
+    config_path: Path, *, cache: Path, package: str
+) -> dict[str, object]:
+    """Resolve Morphe-supported stock versions without downloading stock APKs."""
+    config = load_config(config_path)
+    app = next((item for item in config.apps if item.package == package), None)
+    if app is None:
+        raise BuildError("package is not configured")
+    selection = app_toolchain(app, config.toolchain)
+    prepare_options = (
+        {"patches_sha256": selection.patches_sha256}
+        if selection.patches_sha256 is not None
+        else {}
+    )
+    toolchain_path = prepare_toolchain(
+        cache,
+        {
+            "morphe-cli": selection.morphe_version,
+            "morphe-patches": selection.patches_version,
+        },
+        {
+            "morphe-cli": selection.morphe_source,
+            "morphe-patches": selection.patches_source,
+        },
+        **prepare_options,
+    )
+    toolchain = _toolchain(toolchain_path)
+    compatibility = run_morphe_compatibility(
+        toolchain.java,
+        toolchain.morphe_cli,
+        toolchain.patches,
+        app.package,
+        include=app.include_patches,
+        exclude=app.exclude_patches,
+        exclusive=app.exclusive_patches,
+        requested_version=app.version,
+        include_universal_patches=app_include_universal_patches(app, config.toolchain),
+        include_experimental_versions=app_include_experimental_versions(
+            app, config.toolchain
+        ),
+    )
+    return {
+        "package": package,
+        "versions": list(compatibility.compatible_versions),
+        "selected": compatibility.selected_version,
     }
 
 
@@ -780,6 +1015,50 @@ def _prepare_toolchains(cache: Path, config: Any) -> dict[ToolchainConfig, Path]
                 **prepare_options,
             )
     return toolchains
+
+
+def _apkmirror_version_code(
+    urls: tuple[str, ...], *, version_name: str, arch: str
+) -> str | None:
+    codes = {
+        resolve_apkmirror_version_code(url, version_name=version_name, arch=arch)
+        for url in urls
+    }
+    if not codes:
+        return None
+    if len(codes) != 1:
+        raise ProviderAmbiguous("APKMirror sources disagree on version code")
+    return codes.pop()
+
+
+def _apkmirror_version_code_hint(
+    urls: tuple[str, ...],
+    *,
+    version_name: str,
+    arch: str,
+    reporter: Reporter,
+    package: str,
+) -> str | None:
+    try:
+        if urls:
+            return _apkmirror_version_code(urls, version_name=version_name, arch=arch)
+        return resolve_apkmirror_version_code_for_package(
+            package, version_name=version_name, arch=arch
+        )
+    except (
+        IntegrityMetadataError,
+        ProviderAmbiguous,
+        ProviderUnavailable,
+        VersionUnavailable,
+    ) as error:
+        reporter.event(
+            "hint",
+            "APKMirror version-code hint unavailable; continuing without it",
+            package=package,
+            arch=arch,
+            reason=str(error),
+        )
+        return None
 
 
 def _toolchain(path: Path) -> PreparedToolchain:

@@ -11,7 +11,7 @@ from contextlib import suppress
 from pathlib import Path
 from threading import Lock
 
-from rich.text import Text
+from rich.text import Text  # pyright: ignore[reportMissingImports]
 from textual.app import App  # pyright: ignore[reportMissingImports]
 from textual.binding import (  # pyright: ignore[reportMissingImports]
     Binding,
@@ -32,11 +32,12 @@ _COMMANDS = (
     Command("help", "?", "show_help", "Key help", "Toggle available keys"),
     Command("sidebar", "ctrl+b", "toggle_sidebar", "Sidebar", "Collapse sidebar"),
     Command("dashboard", "1", "show_dashboard", "Dashboard", "Show dashboard"),
-    Command("build_matrix", "2", "show_build_matrix", "Build", "Show build view"),
-    Command("builds", "3", "show_builds", "Builds", "Show build history"),
-    Command("patches", "4", "show_patches", "Patches", "List compatible patches"),
-    Command("cache", "5", "show_cache", "Cache", "Show cache controls"),
-    Command("bundles", "6", "show_bundles", "Bundles", "Browse patch sources"),
+    Command("bundles", "2", "show_bundles", "Bundles", "Browse patch sources"),
+    Command("downloads", "3", "show_downloads", "Downloads", "Download verified stock"),
+    Command("build_matrix", "4", "show_build_matrix", "Build", "Show build view"),
+    Command("builds", "5", "show_builds", "Builds", "Show build history"),
+    Command("patches", "6", "show_patches", "Patches", "List compatible patches"),
+    Command("cache", "7", "show_cache", "Cache", "Show cache controls"),
     Command("theme", "t", "change_theme", "Theme", "Choose theme"),
     Command("quit", "q", "quit", "Quit", "Quit TUI"),
 )
@@ -68,6 +69,8 @@ _RESERVED_BINDINGS = frozenset(
 _VIEWS = (
     ("dashboard", "Dashboard", "▦"),
     ("bundles", "Bundles", "≡"),
+    ("downloads", "Downloads", "⇩"),
+    ("download-library", "Downloaded", "▤"),
     ("build", "Build", "▶"),
     ("builds", "Builds", "▤"),
     ("patches", "Patches", "≡"),

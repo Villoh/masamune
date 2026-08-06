@@ -83,8 +83,14 @@ ToastRack {
     height: 1fr;
 }
 
-#content > VerticalScroll {
+#content > VerticalScroll,
+#content > Vertical {
     padding: 1 2;
+}
+
+#dashboard {
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .section {
@@ -135,6 +141,12 @@ ToastRack {
     width: 1fr;
     height: auto;
     margin-top: 1;
+}
+
+#dashboard #apps {
+    height: 1fr;
+    min-height: 8;
+    background: $panel;
 }
 
 #app-actions,
@@ -264,7 +276,81 @@ ToastRack {
     margin-right: 1;
 }
 
-.bundle-narrow #bundle-source-actions {
+#downloads {
+    padding: 2 3;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+#download-actions {
+    height: 5;
+    width: 1fr;
+    align-vertical: middle;
+    margin-bottom: 1;
+}
+
+#download-version-actions {
+    height: 4;
+    width: 1fr;
+    align-vertical: middle;
+    margin-bottom: 1;
+}
+
+#download-buttons {
+    height: 4;
+    width: 1fr;
+    align-vertical: middle;
+    margin-bottom: 1;
+}
+
+#download-app {
+    width: 2fr;
+    margin-right: 2;
+}
+
+#download-arch,
+#download-provider,
+#download-version {
+    width: 1fr;
+    margin-right: 2;
+}
+
+#download-version-actions Button,
+#download-buttons Button {
+    margin-right: 2;
+}
+
+#download-destination {
+    height: auto;
+    min-height: 2;
+    width: 1fr;
+    padding: 0 1;
+    margin: 1 0;
+    color: $secondary;
+    overflow-x: hidden;
+}
+
+#download-provider-order {
+    margin: 1 0;
+    color: $secondary;
+}
+
+#download-status,
+#download-events-scroll {
+    border: round $primary;
+    padding: 0 1;
+    margin-top: 1;
+}
+
+#download-events-scroll {
+    height: 1fr;
+    min-height: 8;
+}
+
+.bundle-narrow #bundle-source-actions,
+.bundle-narrow #download-actions,
+.bundle-narrow #download-version-actions,
+.bundle-narrow #download-buttons {
     layout: vertical;
     height: auto;
 }
@@ -276,8 +362,13 @@ ToastRack {
     margin-bottom: 1;
 }
 
-.bundle-narrow #bundle-source-actions Button {
+.bundle-narrow #bundle-source-actions Button,
+.bundle-narrow #download-actions Select,
+.bundle-narrow #download-version-actions Select,
+.bundle-narrow #download-version-actions Button,
+.bundle-narrow #download-buttons Button {
     width: 1fr;
+    margin-right: 0;
     margin-bottom: 1;
 }
 
@@ -285,12 +376,18 @@ ContextMenuScreen,
 PatchContextMenuScreen,
 BuildContextMenuScreen,
 CacheContextMenuScreen,
+BundleContextMenuScreen,
+DownloadContextMenuScreen {
+    align: center middle;
+    background: $background 25%;
+}
+
 CacheCleanScreen,
 ConfirmScreen,
+DownloadVersionsScreen,
 LocalSourceScreen,
 AppEditorScreen,
 BundleAppsScreen,
-BundleContextMenuScreen,
 PatchOptionsScreen {
     align: center middle;
     background: $background 70%;
@@ -330,7 +427,8 @@ ContextMenuScreen.at-pointer,
 PatchContextMenuScreen.at-pointer,
 BuildContextMenuScreen.at-pointer,
 CacheContextMenuScreen.at-pointer,
-BundleContextMenuScreen.at-pointer {
+BundleContextMenuScreen.at-pointer,
+DownloadContextMenuScreen.at-pointer {
     align: left top;
 }
 
@@ -375,6 +473,11 @@ BundleContextMenuScreen.at-pointer {
 #cache-context-menu {
     width: 38;
     height: 7;
+}
+
+#download-context-menu {
+    width: 38;
+    height: 8;
 }
 
 #build-context-title,
@@ -423,6 +526,24 @@ BundleContextMenuScreen.at-pointer {
     height: 4;
 }
 
+#download-context-title {
+    width: 38;
+    height: 3;
+    padding: 0 1;
+    background: $surface;
+    border: round $primary;
+    border-bottom: none;
+    text-style: bold;
+}
+
+#download-context-options {
+    width: 38;
+    height: 5;
+    background: $surface;
+    border: round $primary;
+    border-top: none;
+}
+
 #cache-clean-dialog {
     width: 78;
     height: auto;
@@ -443,6 +564,54 @@ BundleContextMenuScreen.at-pointer {
 
 #cache-clean-options Checkbox {
     margin-bottom: 1;
+}
+
+#download-library {
+    padding: 1 2;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+#download-library-destination {
+    color: $secondary;
+    margin-bottom: 1;
+}
+
+#download-library-table {
+    width: 1fr;
+    height: 1fr;
+    min-height: 8;
+    margin-top: 1;
+}
+
+#download-library-actions {
+    height: auto;
+    min-height: 3;
+    margin-top: 1;
+}
+
+#download-library-actions Button {
+    margin-right: 1;
+}
+
+#download-version-dialog {
+    width: 66;
+    height: auto;
+    max-height: 24;
+    padding: 1 2;
+    background: $surface;
+    border: round $primary;
+}
+
+#download-version-dialog-app,
+#download-version-dialog-hint {
+    color: $secondary;
+    margin-bottom: 1;
+}
+
+#download-version-choice {
+    width: 1fr;
+    margin: 1 0;
 }
 
 #confirm-dialog {
