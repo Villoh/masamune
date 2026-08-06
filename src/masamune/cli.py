@@ -17,8 +17,6 @@ try:
 except PackageNotFoundError:
     __version__ = "0.1.0"
 
-TEMPLATE_KEYSTORE = Path(__file__).resolve().parents[2] / ".github" / "masamune.p12"
-TEMPLATE_KEYSTORE_PASSWORD = "masamune"
 _SECRET_RE = re.compile(
     r"(?i)\b(authorization|cookie|token|password|dispenser)\b\s*[:=]\s*[^\r\n]*"
 )
@@ -50,11 +48,7 @@ def parser() -> argparse.ArgumentParser:
     command.add_argument(
         "--keystore",
         type=Path,
-        default=(
-            TEMPLATE_KEYSTORE
-            if TEMPLATE_KEYSTORE.is_file() and not TEMPLATE_KEYSTORE.is_symlink()
-            else None
-        ),
+        default=None,
     )
     command.add_argument("--keystore-alias", default="masamune")
     command.set_defaults(handler=_handle_tui)

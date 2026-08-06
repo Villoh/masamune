@@ -51,7 +51,6 @@ from textual.worker import Worker, WorkerState  # pyright: ignore[reportMissingI
 from ..apk import verify_apk_set
 from ..architecture import Architecture
 from ..cli import (  # pyright: ignore[reportMissingImports]
-    TEMPLATE_KEYSTORE,
     __version__,
     error_code,
     redact,
@@ -1654,10 +1653,8 @@ class MasamuneApp(App[None]):
             self._set_build_status("FAILED")
             self._set_build_error("Build requires loaded configuration")
             return
-        if (
-            self.args.keystore is not None
-            and not os.environ.get("MORPHE_KEYSTORE_PASSWORD")
-            and not self._uses_template_keystore()
+        if self.args.keystore is not None and not os.environ.get(
+            "MORPHE_KEYSTORE_PASSWORD"
         ):
             self._set_build_status("FAILED")
             self._set_build_error("MORPHE_KEYSTORE_PASSWORD is required")
@@ -1691,9 +1688,7 @@ class MasamuneApp(App[None]):
             else redact(os.path.relpath(self.args.keystore))
         )
         password_note = (
-            "Public template keystore uses its bundled test password."
-            if self._uses_template_keystore()
-            else "Auto-generated key manages its own password."
+            "Auto-generated key manages its own password."
             if self.args.keystore is None
             else "Password is read only from environment; never displayed."
         )
@@ -1708,15 +1703,6 @@ class MasamuneApp(App[None]):
             )
         )
 
-    def _uses_template_keystore(self) -> bool:
-        keystore = self.args.keystore
-        return bool(
-            keystore is not None
-            and TEMPLATE_KEYSTORE.is_file()
-            and not TEMPLATE_KEYSTORE.is_symlink()
-            and keystore.resolve() == TEMPLATE_KEYSTORE.resolve()
-        )
-
     @work(thread=True, exit_on_error=False, name="build")
     def run_build_worker(self) -> dict[str, object]:
         return run_build_task(
@@ -1724,7 +1710,6 @@ class MasamuneApp(App[None]):
             runner=run_build,
             reporter=Reporter(sink=self._relay_build_event),
             cancel_event=self._build_cancel_event,
-            uses_template_keystore=self._uses_template_keystore(),
             output_sink=self._record_subprocess_output,
         )
 

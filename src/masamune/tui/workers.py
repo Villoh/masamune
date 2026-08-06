@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from collections.abc import Callable
 from contextlib import nullcontext
 from threading import Event
 from typing import Any
 
-from ..cli import TEMPLATE_KEYSTORE_PASSWORD
 from ..providers.google_play import (  # pyright: ignore[reportMissingImports]
     set_build_cancel_event,
     set_terminal_owner,
@@ -21,12 +19,9 @@ def run_build_task(
     runner: Callable[..., dict[str, object]],
     reporter: Any,
     cancel_event: Event,
-    uses_template_keystore: bool,
     output_sink: Callable[[str], None],
 ) -> dict[str, object]:
     del output_sink
-    if uses_template_keystore and not os.environ.get("MORPHE_KEYSTORE_PASSWORD"):
-        os.environ["MORPHE_KEYSTORE_PASSWORD"] = TEMPLATE_KEYSTORE_PASSWORD
     return runner(args, reporter=reporter, cancel_event=cancel_event)
 
 

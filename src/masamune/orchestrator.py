@@ -377,7 +377,11 @@ def run_build(
     config = load_config(args.config)
     if args.output.exists() or args.output.is_symlink():
         raise FileExistsError(f"refusing to overwrite build output: {args.output}")
-    keystore = args.keystore
+    # Freeze relative CLI/TUI paths before worker execution; signing tools run
+    # outside UI context and must not depend on a later working directory.
+    keystore = (
+        args.keystore.expanduser().resolve() if args.keystore is not None else None
+    )
     if keystore is None:
         keystore = args.cache / "masamune.p12"
         ensure_user_keystore(keystore, alias=args.keystore_alias)
