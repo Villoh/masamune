@@ -670,6 +670,35 @@ class AppEditorScreen(ModalScreen[dict[str, str] | None]):
             yield Input(
                 self.values.get("patched-package", ""), id="edit-patched-package"
             )
+            yield Label("Expected signer SHA-256 (optional)")
+            yield Input(
+                self.values.get("expected-signer", ""), id="edit-expected-signer"
+            )
+            yield Label("Downloader settings (optional)", classes="field-section")
+            yield Label("Google Play profile")
+            yield Input(
+                self.values.get("google-play-profile", ""), id="edit-google-profile"
+            )
+            yield Label("Google Play country")
+            yield Input(
+                self.values.get("google-play-country", ""), id="edit-google-country"
+            )
+            yield Label("Google Play proxy")
+            yield Input(
+                self.values.get("google-play-proxy", ""), id="edit-google-proxy"
+            )
+            yield Label("Google Play dispenser")
+            yield Input(
+                self.values.get("google-play-dispenser", ""), id="edit-google-dispenser"
+            )
+            yield Label("APKMirror URLs (comma-separated)")
+            yield Input(
+                self.values.get("fallback-apkmirror", ""), id="edit-fallback-apkmirror"
+            )
+            yield Label("Direct APK URLs (comma-separated)")
+            yield Input(
+                self.values.get("fallback-direct", ""), id="edit-fallback-direct"
+            )
             yield Label("Local APK source (optional)")
             with Vertical(id="source-picker-row"):
                 yield Static(
@@ -725,9 +754,7 @@ class AppEditorScreen(ModalScreen[dict[str, str] | None]):
         if event.button.id in {"choose-app-source-apk", "choose-app-source-folder"}:
             try:
                 path = choose_source(
-                    "apk"
-                    if event.button.id == "choose-app-source-apk"
-                    else "folder"
+                    "apk" if event.button.id == "choose-app-source-apk" else "folder"
                 )
             except Exception as error:
                 self.query_one("#editor-error", Static).update(
@@ -747,6 +774,17 @@ class AppEditorScreen(ModalScreen[dict[str, str] | None]):
             ).lower(),
             "slug": self.query_one("#edit-slug", Input).value,
             "patched-package": self.query_one("#edit-patched-package", Input).value,
+            "expected-signer": self.query_one("#edit-expected-signer", Input).value,
+            "google-play-profile": self.query_one("#edit-google-profile", Input).value,
+            "google-play-country": self.query_one("#edit-google-country", Input).value,
+            "google-play-proxy": self.query_one("#edit-google-proxy", Input).value,
+            "google-play-dispenser": self.query_one(
+                "#edit-google-dispenser", Input
+            ).value,
+            "fallback-apkmirror": self.query_one(
+                "#edit-fallback-apkmirror", Input
+            ).value,
+            "fallback-direct": self.query_one("#edit-fallback-direct", Input).value,
             "source-dir": self.source_dir,
             "version": self.query_one("#edit-version", Input).value,
             "build-mode": str(self.query_one("#edit-build-mode", Select).value),

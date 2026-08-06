@@ -24,6 +24,7 @@ _APP_FIELDS = (
     "include-universal-patches",
     "slug",
     "patched-package",
+    "expected-signer",
     "source-dir",
     "version",
     "build-mode",
@@ -32,15 +33,21 @@ _APP_FIELDS = (
     "patches-version",
     "patches-sha256",
     "fallback-direct",
-    "fallback-archive",
     "fallback-apkmirror",
-    "fallback-uptodown",
+    "google-play-profile",
+    "google-play-country",
+    "google-play-proxy",
+    "google-play-dispenser",
 )
 _FALLBACK_FIELD_KEYS = {
     "fallback-direct": "direct",
-    "fallback-archive": "archive",
     "fallback-apkmirror": "apkmirror",
-    "fallback-uptodown": "uptodown",
+}
+_GOOGLE_FIELD_KEYS = {
+    "google-play-profile": "profile",
+    "google-play-country": "country",
+    "google-play-proxy": "proxy",
+    "google-play-dispenser": "dispenser",
 }
 
 
@@ -133,6 +140,8 @@ def set_exclusive_patches(
 
 def _set_fields(app: Table, fields: Mapping[str, str]) -> None:
     for key in _APP_FIELDS:
+        if key not in fields and key in (_FALLBACK_FIELD_KEYS | _GOOGLE_FIELD_KEYS):
+            continue
         value = fields.get(key, "").strip()
         if key in {"enabled", "include-universal-patches"}:
             if not value:
@@ -153,6 +162,17 @@ def _set_fields(app: Table, fields: Mapping[str, str]) -> None:
                 fallbacks.pop(_FALLBACK_FIELD_KEYS[key], None)
                 if not fallbacks:
                     app.pop("fallbacks", None)
+        elif key in _GOOGLE_FIELD_KEYS:
+            google = app.get("google-play")
+            if value:
+                if not isinstance(google, Table):
+                    google = tomlkit.table()
+                    app["google-play"] = google
+                google[_GOOGLE_FIELD_KEYS[key]] = value
+            elif isinstance(google, Table):
+                google.pop(_GOOGLE_FIELD_KEYS[key], None)
+                if not google:
+                    app.pop("google-play", None)
         elif value:
             app[key] = value
         elif key not in {"package", "name"}:

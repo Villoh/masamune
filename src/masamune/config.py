@@ -38,9 +38,7 @@ class GooglePlayConfig:
 @dataclass(frozen=True)
 class FallbackConfig:
     direct: tuple[str, ...]
-    archive: tuple[str, ...]
     apkmirror: tuple[str, ...]
-    uptodown: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -118,7 +116,7 @@ _APP_KEYS = {
     "fallbacks",
 }
 _GOOGLE_KEYS = {"profile", "country", "proxy", "dispenser"}
-_FALLBACK_KEYS = {"direct", "archive", "apkmirror", "uptodown"}
+_FALLBACK_KEYS = {"direct", "apkmirror"}
 _BUILD_MODES = {"apk", "module", "both"}
 _ARCH_CHOICES = {"all", "both", *(architecture.value for architecture in Architecture)}
 _DEFAULT_TOOLCHAIN = {
@@ -150,9 +148,7 @@ def ensure_config_file(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         with path.open("x", encoding="utf-8") as file:
-            file.write(
-                "# Masamune configuration. Add applications from the TUI.\n"
-            )
+            file.write("# Masamune configuration. Add applications from the TUI.\n")
     except FileExistsError:
         pass
 
@@ -343,7 +339,7 @@ def _fallbacks(value: object, label: str) -> FallbackConfig:
     raw = _table(value, label)
     _keys(raw, _FALLBACK_KEYS, label)
     values = []
-    for key in ("direct", "archive", "apkmirror", "uptodown"):
+    for key in ("direct", "apkmirror"):
         urls = _strings(raw.get(key, []), f"{label}.{key}")
         for url in urls:
             _url(url, f"{label}.{key}", {"https"})

@@ -36,8 +36,8 @@ stores its containing directory; selecting a folder stores that folder directly.
 Supported placeholders: `{arch}`, `{abi}`, and `{module}`.
 
 Masamune verifies package metadata, version, architecture, hashes, and
-signing certificates before merging local splits. It does not download stock
-APKs from Google Play or fallback providers.
+signing certificates before merging local splits. Downloads are available only
+from the explicit Downloads view; Start build remains local-only.
 
 ## Navigation
 
@@ -49,9 +49,23 @@ APKs from Google Play or fallback providers.
 | Patches | `4` | Discover and select exact patches. |
 | Cache | `5` | Inspect and clean disposable cache data. |
 | Bundles | `6` | Discover supported applications. |
+| Downloads | `7` | Download verified stock APKs to a user-selected folder. |
 
 `Ctrl+B` toggles the compact sidebar. `Ctrl+P` opens the command palette. `T`
 opens the theme selector. `?` shows available keys. `Q` quits.
+
+## Download flow
+
+Downloads use fixed order: Google Play → APKMirror → Direct. Google credentials
+come from goopdl environment variables; TUI never displays secrets. Direct URLs
+are explicit HTTPS inputs and show their host before confirmation.
+
+1. Open Downloads (`7`).
+2. Select configured app, explicit version, architecture, and destination folder.
+3. Confirm download. Only this action starts network activity.
+4. Masamune verifies package, version, splits, ABI, signer, hashes, and provenance.
+5. Select the resulting folder manually in Build. Download never changes
+   `source-dir` and never starts a build.
 
 ## Build flow
 
@@ -80,4 +94,4 @@ shown or persisted by TUI.
 ## Current limits
 
 TUI does not provide credential storage, raw TOML editing, hard cancellation of
-running subprocesses, parallel builds, web mode, or runtime image rendering.
+non-goopdl tools, parallel builds, web mode, or runtime image rendering.

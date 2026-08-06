@@ -22,8 +22,8 @@ Masamune is a Textual terminal interface for building Morphe APKs from
 **user-supplied local APK and split-APK files**.
 
 It verifies local inputs, merges splits, resolves Morphe tooling, applies
-patches, signs outputs, and optionally packages modules. It does **not**
-download stock APKs from Google Play or fallback providers.
+patches, signs outputs, and optionally packages modules. Explicit verified stock
+downloads live in separate Downloads view; Start build never downloads.
 
 ## Preview
 
@@ -45,8 +45,9 @@ uber-apk-signer are prepared in the user cache when a build starts.
 
 ## Features
 
-- **Local-only APK input**: native APK and folder pickers; no stock APK
-  downloads.
+- **Local APK input**: native APK and folder pickers; build input stays local-only.
+- **Explicit verified downloads**: Google Play → APKMirror → Direct, never started
+  by Build and never assigned automatically to `source-dir`.
 - **Input verification**: package identity, version, version code, architecture,
   split coverage, hashes, and signing certificates are checked before use.
 - **Config-driven builds**: apps, architectures, versions, patch sources, and
@@ -152,6 +153,7 @@ are never displayed or stored by TUI.
 | Patches | `4` | Discover patches and save exact selections. |
 | Cache | `5` | Inspect cache paths and remove disposable work. |
 | Bundles | `6` | Discover supported applications from patch sources. |
+| Downloads | `7` | Download verified stock APKs to a selected folder. |
 
 | Key | Action |
 | --- | --- |
@@ -160,6 +162,14 @@ are never displayed or stored by TUI.
 | `?` | Show available keys. |
 | `T` | Open theme selector. |
 | `Q` | Quit. |
+
+## Download flow
+
+Downloads require an explicit action in Downloads (`7`). Fixed provider order is
+Google Play → APKMirror → Direct. Credentials come from goopdl environment
+variables and never appear in TUI, logs, or provenance. Every result is
+independently verified before atomic publication. Select its folder manually in
+Build afterward; `source-dir` is never changed automatically.
 
 ## Build flow
 
@@ -178,8 +188,9 @@ Build view reports:
 - output paths and artifact names;
 - `build.log` and provenance files in each published build directory.
 
-Only one build runs at a time. Stop build cancels the active downloader and
-cleans temporary staging; it does not interrupt arbitrary external tools.
+Only one build runs at a time. Stop build requests cancellation after the
+current build operation and cleans temporary staging; it does not interrupt
+arbitrary external tools.
 
 ## Patch bundles and individual patches
 
@@ -196,7 +207,9 @@ cache. It never downloads stock APKs.
 
 ## Safety model
 
-- No Google Play, APKMirror, Uptodown, or other stock APK downloads.
+- Start build performs no network activity or provider fallback.
+- Downloads run only after user confirmation in Downloads.
+- Google Play, APKMirror, and explicit Direct URLs are independently verified.
 - Original local split APKs remain unchanged.
 - APK metadata, hashes, architecture, and signer identity are verified.
 - Existing output directories are never overwritten.

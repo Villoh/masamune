@@ -22,6 +22,7 @@ classifiers = [
 ]
 dependencies = [
   "axml==0.0.2",
+  "goopdl==1.2.0",
   "rich>=13",
   "textual==6.6.0",
   "tomlkit==0.13.2",
@@ -36,6 +37,7 @@ masamune = "masamune.cli:main"
 
 [tool.uv]
 exclude-newer = "3 days"
+exclude-newer-package = { goopdl = false }
 
 [tool.setuptools]
 package-dir = { "" = "src" }

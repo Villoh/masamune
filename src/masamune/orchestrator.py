@@ -33,11 +33,15 @@ from .bundles import (  # pyright: ignore[reportMissingImports]
 )
 from .cli import redact  # pyright: ignore[reportMissingImports]
 from .compatibility import (
+    confirm_version_code,
     parse_patch_list,
+    resolve_version_code_candidate,
     run_morphe_action,
     run_morphe_compatibility,
 )
 from .config import (
+    FallbackConfig,
+    GooglePlayConfig,
     ToolchainConfig,
     app_include_experimental_versions,
     app_include_universal_patches,
@@ -55,6 +59,16 @@ from .merge import (
     write_selection_manifest,
 )
 from .module import build_module
+from .providers import (
+    ProviderRequest,
+    ProviderResult,
+    VersionUnavailable,
+    fallback_download,
+    providers_for,
+)
+from .providers.apkmirror import resolve_apkmirror_version_code
+from .providers.errors import ProviderAmbiguous, ProviderUnavailable
+from .providers.google_play import GooglePlayProvider
 from .release_notes import render_release_notes
 from .toolchain import (
     PreparedToolchain,
@@ -62,13 +76,6 @@ from .toolchain import (
     apksigner_jar,
     prepare_toolchain,
 )
-
-
-@dataclass(frozen=True)
-class ProviderResult:
-    provider: str
-    directory: Path
-    provenance: Path
 
 
 @dataclass(frozen=True)
@@ -156,6 +163,116 @@ class Reporter:
             print(json.dumps(record, sort_keys=True), file=sys.stderr)
         else:
             print(line, file=sys.stderr)
+
+
+def run_download(
+    request: ProviderRequest,
+    *,
+    cache: Path,
+    google_play: GooglePlayConfig,
+    fallbacks: FallbackConfig,
+    reporter: Reporter | None = None,
+    cancel_event: Event | None = None,
+) -> ProviderResult:
+    """Download and publish one verified APK set outside build orchestration."""
+    reporter = reporter or Reporter()
+    if cancel_event is not None and cancel_event.is_set():
+        raise BuildCancelled("download cancelled by user")
+    candidate = (
+        resolve_version_code_candidate(
+            cache,
+            package=request.package,
+            version_name=request.version_name or "",
+            arch=request.arch,
+            profile=google_play.profile,
+            region=google_play.country,
+            explicit_version_code=request.version_code,
+            fallback_metadata=(
+                lambda *_: _apkmirror_version_code_hint(
+                    fallbacks.apkmirror,
+                    version_name=request.version_name or "",
+                    arch=request.arch,
+                    reporter=reporter,
+                    package=request.package,
+                )
+            ),
+        )
+        if request.version_name is not None
+        else None
+    )
+    resolved_request = ProviderRequest(
+        request.package,
+        request.version_name,
+        candidate.version_code if candidate is not None else request.version_code,
+        request.arch,
+        request.output,
+        request.expected_signer,
+    )
+    reporter.event(
+        "download",
+        "preparing verified stock",
+        package=request.package,
+        arch=request.arch,
+        destination=request.output,
+    )
+    provider = fallback_download(
+        resolved_request,
+        providers_for(
+            GooglePlayProvider(
+                profile=google_play.profile,
+                region=google_play.country,
+                dispenser=google_play.dispenser,
+                proxy=google_play.proxy,
+            ),
+            direct=fallbacks.direct,
+            apkmirror=fallbacks.apkmirror,
+        ),
+    )
+    if cancel_event is not None and cancel_event.is_set():
+        raise BuildCancelled("download cancelled by user")
+    source = _read_json(provider.provenance, "source provenance")
+    version = source.get("version")
+    if (
+        not isinstance(version, dict)
+        or not isinstance(version.get("name"), str)
+        or (
+            request.version_name is not None
+            and version.get("name") != request.version_name
+        )
+        or not isinstance(version.get("code"), str)
+    ):
+        raise IntegrityMetadataError("source provenance version mismatch")
+    version_name = version["name"]
+    version_code = version["code"]
+    if request.version_name is not None:
+        confirm_version_code(
+            cache,
+            package=request.package,
+            version_name=version_name,
+            arch=request.arch,
+            profile=google_play.profile,
+            region=google_play.country,
+            version_code=version_code,
+        )
+    metadata = verify_apk_set(
+        provider.directory,
+        request.package,
+        version_name=request.version_name,
+        version_code=version_code,
+        arch=request.arch,
+        expected_signer=request.expected_signer,
+    )
+    reporter.event(
+        "download",
+        "trusted stock acquired",
+        package=request.package,
+        arch=request.arch,
+        provider=provider.provider,
+        version=version.get("name"),
+        version_code=version_code,
+        files=len(metadata),
+    )
+    return provider
 
 
 def _source_directory(job: Any) -> Path:
@@ -464,7 +581,11 @@ def _obtain_verified_source(
             package=job.app.package,
             certificate_sha256=",".join(metadata[0].signers_sha256),
         )
-    return ProviderResult("local", source_directory, provenance_path), metadata, base.version_code
+    return (
+        ProviderResult("local", source_directory, provenance_path),
+        metadata,
+        base.version_code,
+    )
 
 
 def _merge_and_sign_stock(
@@ -780,6 +901,48 @@ def _prepare_toolchains(cache: Path, config: Any) -> dict[ToolchainConfig, Path]
                 **prepare_options,
             )
     return toolchains
+
+
+def _apkmirror_version_code(
+    urls: tuple[str, ...], *, version_name: str, arch: str
+) -> str | None:
+    codes = {
+        resolve_apkmirror_version_code(url, version_name=version_name, arch=arch)
+        for url in urls
+    }
+    if not codes:
+        return None
+    if len(codes) != 1:
+        raise ProviderAmbiguous("APKMirror sources disagree on version code")
+    return codes.pop()
+
+
+def _apkmirror_version_code_hint(
+    urls: tuple[str, ...],
+    *,
+    version_name: str,
+    arch: str,
+    reporter: Reporter,
+    package: str,
+) -> str | None:
+    try:
+        if not urls:
+            return None
+        return _apkmirror_version_code(urls, version_name=version_name, arch=arch)
+    except (
+        IntegrityMetadataError,
+        ProviderAmbiguous,
+        ProviderUnavailable,
+        VersionUnavailable,
+    ) as error:
+        reporter.event(
+            "hint",
+            "APKMirror version-code hint unavailable; continuing without it",
+            package=package,
+            arch=arch,
+            reason=str(error),
+        )
+        return None
 
 
 def _toolchain(path: Path) -> PreparedToolchain:

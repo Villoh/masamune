@@ -37,6 +37,7 @@ _COMMANDS = (
     Command("patches", "4", "show_patches", "Patches", "List compatible patches"),
     Command("cache", "5", "show_cache", "Cache", "Show cache controls"),
     Command("bundles", "6", "show_bundles", "Bundles", "Browse patch sources"),
+    Command("downloads", "7", "show_downloads", "Downloads", "Download verified stock"),
     Command("theme", "t", "change_theme", "Theme", "Choose theme"),
     Command("quit", "q", "quit", "Quit", "Quit TUI"),
 )
@@ -72,6 +73,7 @@ _VIEWS = (
     ("builds", "Builds", "▤"),
     ("patches", "Patches", "≡"),
     ("cache", "Cache", "▣"),
+    ("downloads", "Downloads", "⇩"),
 )
 _EYE_SCHEDULE_LENGTH = 12
 _THEME_NAMES = ("morphe-dark", "morphe-light", "morphe-high-contrast")

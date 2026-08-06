@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from threading import Event
 from typing import ClassVar
+from urllib.parse import urlparse
 
 from rich.text import Text
 from textual import work  # pyright: ignore[reportMissingImports]
@@ -72,9 +73,11 @@ from ..orchestrator import (  # pyright: ignore[reportMissingImports]
     run_bundle_catalog,
     run_clean,
     run_community_bundles,
+    run_download,
     run_list_patches,
     run_patch_catalog,
 )
+from ..providers import ProviderRequest
 from .helpers import (
     _BINDINGS,
     _CACHE_CLEANABLE_NAMES,
@@ -111,6 +114,7 @@ from .models import (
     PatchOptionValue,
     Preferences,
 )
+from .native_picker import choose_source
 from .screens import (  # pyright: ignore[reportMissingImports]
     AppEditorScreen,
     BuildContextMenuScreen,
@@ -125,7 +129,7 @@ from .screens import (  # pyright: ignore[reportMissingImports]
     PatchOptionsScreen,
 )
 from .widgets import FullWidthDataTable, PatchListItem, PatchSelectionList
-from .workers import run_build_task
+from .workers import run_build_task, run_download_task
 
 
 def load_preferences(path: Path | None = None) -> Preferences:
@@ -185,6 +189,13 @@ class MasamuneApp(App[None]):
         self._bundle_open_after_load: tuple[str, str] | None = None
         self._build_worker: Worker[dict[str, object]] | None = None
         self._build_cancel_event = Event()
+        self._download_worker: Worker[object] | None = None
+        self._download_cancel_event = Event()
+        self._download_destination: Path | None = None
+        self._download_request: ProviderRequest | None = None
+        self._download_app: AppConfig | None = None
+        self._download_events: list[str] = []
+        self._download_result: object | None = None
         self._source_prompt_queue: list[str] = []
         self._clean_worker: Worker[dict[str, object]] | None = None
         self._cache_worker: (
@@ -357,6 +368,53 @@ class MasamuneApp(App[None]):
                     with Horizontal(id="cache-actions"):
                         yield Button("↻ Refresh", id="refresh-cache")
                         yield Button("Clean cache", id="clean", variant="error")
+                with VerticalScroll(id="downloads"):
+                    yield Static(
+                        "Downloads are explicit and never start from Build.",
+                        classes="view-hint",
+                        markup=False,
+                    )
+                    with Horizontal(id="download-actions"):
+                        yield Select((), prompt="Select application", id="download-app")
+                        yield Select(
+                            (("arm64-v8a", "arm64-v8a"), ("arm-v7a", "arm-v7a")),
+                            value="arm64-v8a",
+                            id="download-arch",
+                        )
+                    yield Static(
+                        "Destination: not selected",
+                        id="download-destination",
+                        markup=False,
+                    )
+                    with Horizontal(id="download-buttons"):
+                        yield Button(
+                            "Choose destination", id="choose-download-destination"
+                        )
+                        yield Button(
+                            "Download selected", id="start-download", variant="primary"
+                        )
+                        yield Button(
+                            "Stop download",
+                            id="stop-download",
+                            variant="error",
+                            disabled=True,
+                        )
+                        yield Button(
+                            "Open folder", id="open-download-folder", disabled=True
+                        )
+                        yield Button(
+                            "Delete selected", id="delete-download", variant="error"
+                        )
+                    yield Static(
+                        "Provider order: Google Play → APKMirror → Direct",
+                        id="download-provider-order",
+                        markup=False,
+                    )
+                    yield Static("", id="download-status", markup=False)
+                    with VerticalScroll(id="download-events-scroll"):
+                        yield Static(
+                            "No download events.", id="download-events", markup=False
+                        )
         with Vertical(id="footer-bar"):
             yield Static("Ready.", id="status", markup=False)
             yield Footer()
@@ -394,6 +452,7 @@ class MasamuneApp(App[None]):
         self._render_build_progress()
         self._render_patches([])
         self._load_dashboard()
+        self._render_download_apps()
         self._start_cache_inventory()
         self._render_build_history()
         if self.animation_level != "none":
@@ -510,6 +569,7 @@ class MasamuneApp(App[None]):
             "patches": self.action_show_patches,
             "bundles": self.action_show_bundles,
             "cache": self.action_show_cache,
+            "downloads": self.action_show_downloads,
         }.get(view, lambda: self.show_view(view))()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -528,6 +588,11 @@ class MasamuneApp(App[None]):
             "refresh-bundles": self.action_load_community_bundles,
             "show-bundle-apps": self.action_show_bundle_apps,
             "load-bundle": self.action_load_bundle,
+            "choose-download-destination": self.action_choose_download_destination,
+            "start-download": self.action_start_download,
+            "stop-download": self.action_stop_download,
+            "open-download-folder": self.action_open_download_folder,
+            "delete-download": self.action_delete_download,
         }
         action = actions.get(event.button.id or "")
         if action is not None:
@@ -811,12 +876,20 @@ class MasamuneApp(App[None]):
             "name": app.name,
             "enabled": str(app.enabled).lower(),
             "include-universal-patches": (
-                "" if app.include_universal_patches is None else
-                str(app.include_universal_patches).lower()
+                ""
+                if app.include_universal_patches is None
+                else str(app.include_universal_patches).lower()
             ),
             "slug": app.slug,
             "patched-package": app.patched_package or "",
+            "expected-signer": app.expected_signer or "",
             "source-dir": app.source_dir or "",
+            "google-play-profile": app.google_play.profile or "",
+            "google-play-country": app.google_play.country or "",
+            "google-play-proxy": app.google_play.proxy or "",
+            "google-play-dispenser": app.google_play.dispenser or "",
+            "fallback-direct": ", ".join(app.fallbacks.direct),
+            "fallback-apkmirror": ", ".join(app.fallbacks.apkmirror),
             "version": app.version,
             "build-mode": app.build_mode,
             "arch": app.arch,
@@ -895,6 +968,212 @@ class MasamuneApp(App[None]):
         if not self._splash_active:
             self.show_view("cache")
             self._start_cache_inventory()
+
+    def action_show_downloads(self) -> None:
+        if self._splash_active:
+            return
+        self.show_view("downloads")
+        self._render_download_apps()
+
+    def _render_download_apps(self) -> None:
+        selector = self.query_one("#download-app", Select)
+        current = selector.value
+        selector.set_options(
+            (Text(f"{app.name} · {app.package}"), app.package)
+            for app in self.dashboard_state.apps
+            if app.enabled
+        )
+        packages = {app.package for app in self.dashboard_state.apps if app.enabled}
+        if current in packages:
+            selector.value = current
+        elif packages:
+            selector.value = next(iter(packages))
+        else:
+            selector.value = Select.BLANK
+
+    def _selected_download_app(self) -> AppConfig | None:
+        value = self.query_one("#download-app", Select).value
+        if value is Select.BLANK:
+            self._set_download_status("No application selected")
+            return None
+        app = next(
+            (item for item in self.dashboard_state.apps if item.package == str(value)),
+            None,
+        )
+        if app is None:
+            self._set_download_status("Selected application is unavailable")
+        return app
+
+    def action_choose_download_destination(self) -> None:
+        try:
+            path = choose_source("folder")
+        except Exception as error:
+            self._set_download_status(f"Native picker unavailable: {error}")
+            return
+        if path is not None:
+            self._download_destination = path
+            self.query_one("#download-destination", Static).update(
+                f"Destination: {redact(str(path))}"
+            )
+            self._set_download_status("Destination selected")
+
+    def action_start_download(self) -> None:
+        if self._download_worker is not None and not self._download_worker.is_finished:
+            self._set_download_status("Download already running")
+            return
+        app = self._selected_download_app()
+        if app is None:
+            return
+        if self._download_destination is None:
+            self._set_download_status("Choose destination folder first")
+            return
+        if app.version in {"auto", "latest"}:
+            self._set_download_status(
+                "Set explicit compatible version before downloading"
+            )
+            return
+        version_path = Path(app.version)
+        if version_path.name != app.version or app.version in {".", ".."}:
+            self._set_download_status("Version is not a safe download path")
+            return
+        architecture = Architecture.from_config(
+            str(self.query_one("#download-arch", Select).value)
+        )
+        output = (
+            self._download_destination / app.slug / version_path / architecture.value
+        )
+        direct_hosts = sorted(
+            {
+                (urlparse(url).hostname or "<invalid>").lower()
+                for url in app.fallbacks.direct
+            }
+        )
+        direct_note = (
+            "Direct hosts: " + ", ".join(direct_hosts)
+            if direct_hosts
+            else "Direct: not configured"
+        )
+        self._download_app = app
+        self._download_request = ProviderRequest(
+            app.package,
+            app.version,
+            app.version_code,
+            architecture.goopdl,
+            output,
+            app.expected_signer,
+        )
+        self.push_screen(
+            ConfirmScreen(
+                "\\n".join(
+                    (
+                        "Download verified stock",
+                        f"App: {app.name} · {app.package}",
+                        f"Version: {app.version}",
+                        f"ABI: {architecture.value}",
+                        "Source: Google Play → APKMirror → Direct",
+                        f"Destination: {redact(str(output))}",
+                        direct_note,
+                        "Download starts only after confirmation.",
+                    )
+                ),
+                confirm_label="Download",
+                confirm_variant="primary",
+            ),
+            self._handle_download_confirmation,
+        )
+
+    def _handle_download_confirmation(self, confirmed: bool | None) -> None:
+        if (
+            not confirmed
+            or self._download_request is None
+            or self._download_app is None
+        ):
+            self._set_download_status("Download cancelled before start")
+            return
+        self._download_cancel_event.clear()
+        self._download_events.clear()
+        self._download_result = None
+        self.query_one("#stop-download", Button).disabled = False
+        self.query_one("#open-download-folder", Button).disabled = True
+        self._set_download_status("Downloading verified stock")
+        self._render_download_events()
+        self._download_worker = self.run_download_worker()
+
+    def action_stop_download(self) -> None:
+        if self._download_worker is None or self._download_worker.is_finished:
+            self._set_download_status("No download running")
+            return
+        self._download_cancel_event.set()
+        self.query_one("#stop-download", Button).disabled = True
+        self._set_download_status("Stopping download")
+
+    def action_delete_download(self) -> None:
+        path = self._download_request.output if self._download_request else None
+        if path is None or not path.is_dir():
+            self._set_download_status("No verified download selected")
+            return
+        self.push_screen(
+            ConfirmScreen(
+                f"Delete verified download?\\n{redact(str(path))}\\nThis cannot be undone.",
+                confirm_label="Delete download",
+                confirm_variant="error",
+            ),
+            self._handle_delete_download,
+        )
+
+    def _handle_delete_download(self, confirmed: bool | None) -> None:
+        if not confirmed or self._download_request is None:
+            return
+        path = self._download_request.output
+        try:
+            if path.is_dir() and not path.is_symlink():
+                shutil.rmtree(path)
+        except OSError:
+            self._set_download_status("Could not delete verified download")
+            return
+        self._download_result = None
+        self.query_one("#open-download-folder", Button).disabled = True
+        self._set_download_status("Verified download deleted")
+
+    def action_open_download_folder(self) -> None:
+        path = self._download_request.output if self._download_request else None
+        if path is None or not path.is_dir():
+            self._set_download_status("Verified download folder not found")
+            return
+        try:
+            if sys.platform == "win32":
+                os.startfile(path)
+            elif sys.platform == "darwin":
+                subprocess.run(["open", str(path)], check=False)
+            else:
+                subprocess.run(["xdg-open", str(path)], check=False)
+        except OSError:
+            self._set_download_status("Could not open download folder")
+
+    def _set_download_status(self, message: str) -> None:
+        self.query_one("#download-status", Static).update(redact(message))
+
+    def _relay_download_event(self, event: dict[str, object]) -> None:
+        with suppress(Exception):
+            self.call_from_thread(self._record_download_event, event)
+
+    def _record_download_event(self, event: dict[str, object]) -> None:
+        stage = redact(str(event.get("event", "download")))
+        message = redact(str(event.get("message", "")))
+        fields = " ".join(
+            f"{redact(str(key))}={redact(str(value))}"
+            for key, value in event.items()
+            if key not in {"event", "message"}
+        )
+        self._download_events.append(
+            f"[{stage}] {message}{(' ' + fields) if fields else ''}"
+        )
+        self._render_download_events()
+
+    def _render_download_events(self) -> None:
+        self.query_one("#download-events", Static).update(
+            "\\n".join(self._download_events) or "No download events."
+        )
 
     def action_start_build(self) -> None:
         if self._splash_active:
@@ -1077,6 +1356,29 @@ class MasamuneApp(App[None]):
             uses_template_keystore=self._uses_template_keystore(),
             output_sink=self._record_subprocess_output,
         )
+
+    @work(thread=True, exit_on_error=False, name="download")
+    def run_download_worker(self) -> object:
+        request = self._download_request
+        app = self._download_app
+        if request is None or app is None:
+            raise RuntimeError("download request is not prepared")
+        return run_download_task(
+            request,
+            runner=run_download,
+            reporter=Reporter(sink=self._relay_download_event),
+            cancel_event=self._download_cancel_event,
+            output_sink=self._record_download_output,
+            cache=self.args.cache,
+            google_play=app.google_play,
+            fallbacks=app.fallbacks,
+        )
+
+    def _record_download_output(self, line: str) -> None:
+        for message in line.replace("\\r", "\\n").splitlines():
+            message = redact(message.strip())
+            if message:
+                self._relay_download_event({"event": "provider", "message": message})
 
     def _record_subprocess_output(self, line: str) -> None:
         for message in line.replace("\r", "\n").splitlines():
@@ -1594,6 +1896,27 @@ class MasamuneApp(App[None]):
                 if self.query_one("#content", ContentSwitcher).current == "builds":
                     self._render_build_history()
             return
+        if event.worker is self._download_worker:
+            if event.state is WorkerState.RUNNING:
+                self._set_download_status("Downloading verified stock")
+            elif event.state is WorkerState.SUCCESS:
+                self.query_one("#stop-download", Button).disabled = True
+                self.query_one("#open-download-folder", Button).disabled = False
+                self._download_result = event.worker.result
+                provider = getattr(event.worker.result, "provider", "unknown")
+                self._set_download_status(
+                    "Download verified. Select its folder when configuring the build. "
+                    f"provider={redact(str(provider))}"
+                )
+            elif event.state is WorkerState.ERROR:
+                self.query_one("#stop-download", Button).disabled = True
+                if isinstance(event.worker.error, BuildCancelled):
+                    self._set_download_status("Download cancelled")
+                else:
+                    self._set_download_status(
+                        f"Download failed: {self._describe(event.worker.error)}"
+                    )
+            return
         if event.worker is self._community_worker:
             if event.state is WorkerState.RUNNING:
                 self._set_bundle_status("Community bundles: loading")
@@ -1787,7 +2110,7 @@ class MasamuneApp(App[None]):
     def get_system_commands(self, screen) -> Iterable[SystemCommand]:  # type: ignore[no-untyped-def]
         yield from super().get_system_commands(screen)
         for command in _COMMANDS:
-            if command.action in {"toggle_sidebar", "show_dashboard"}:
+            if command.action in {"toggle_sidebar", "show_dashboard", "show_downloads"}:
                 yield SystemCommand(
                     command.label,
                     command.description,
@@ -1805,6 +2128,7 @@ class MasamuneApp(App[None]):
     def _reload_configuration(self) -> None:
         self.dashboard_state = DashboardState(self.dashboard_state.config_path)
         self._load_dashboard()
+        self._render_download_apps()
 
     def _load_dashboard(self) -> None:
         path = self.dashboard_state.config_path
@@ -2016,9 +2340,9 @@ class MasamuneApp(App[None]):
                     and isinstance(architecture, str)
                     and architecture
                 ):
-                    self.build_progress[
-                        self._build_job_key(package, architecture)
-                    ] = state
+                    self.build_progress[self._build_job_key(package, architecture)] = (
+                        state
+                    )
         self._render_build_progress()
 
     def _set_status(self, message: str) -> None:

@@ -1,0 +1,61 @@
+import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from threading import Event
+from unittest.mock import patch
+
+from masamune.config import load_config
+from masamune.config_editor import update_app
+from masamune.tui.workers import run_download_task
+
+
+class DownloadIntegrationTests(unittest.TestCase):
+    def test_download_worker_clears_provider_hooks_on_failure(self) -> None:
+        with (
+            patch("masamune.tui.workers.set_terminal_owner") as terminal,
+            patch("masamune.tui.workers.set_build_cancel_event") as cancel,
+        ):
+
+            def runner(*args, **kwargs):
+                raise RuntimeError("failed")
+
+            with self.assertRaisesRegex(RuntimeError, "failed"):
+                run_download_task(
+                    object(),
+                    runner=runner,
+                    reporter=object(),
+                    cancel_event=Event(),
+                    output_sink=lambda _: None,
+                )
+
+        self.assertEqual(terminal.call_args_list[-1].args, (None,))
+        self.assertEqual(cancel.call_args_list[-1].args, (None,))
+
+    def test_editing_app_preserves_unexposed_provider_values(self) -> None:
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "morphe.toml"
+            path.write_text(
+                """[[apps]]
+package = "com.example.app"
+name = "Example"
+[apps.google-play]
+profile = "default"
+[apps.fallbacks]
+direct = ["https://downloads.example/app.apk"]
+""",
+                encoding="utf-8",
+            )
+            update_app(
+                path,
+                "com.example.app",
+                {"package": "com.example.app", "name": "Renamed"},
+            )
+            app = load_config(path).apps[0]
+
+        self.assertEqual(app.name, "Renamed")
+        self.assertEqual(app.google_play.profile, "default")
+        self.assertEqual(app.fallbacks.direct, ("https://downloads.example/app.apk",))
+
+
+if __name__ == "__main__":
+    unittest.main()

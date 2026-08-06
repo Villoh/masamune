@@ -264,6 +264,35 @@ ToastRack {
     margin-right: 1;
 }
 
+#download-actions,
+#download-buttons {
+    height: auto;
+    min-height: 3;
+    width: 1fr;
+}
+
+#download-app,
+#download-arch {
+    width: 1fr;
+    margin-right: 1;
+}
+
+#download-buttons Button {
+    margin-right: 1;
+}
+
+#download-status,
+#download-events-scroll {
+    border: round $primary;
+    padding: 0 1;
+    margin-top: 1;
+}
+
+#download-events-scroll {
+    height: 1fr;
+    min-height: 8;
+}
+
 .bundle-narrow #bundle-source-actions {
     layout: vertical;
     height: auto;
