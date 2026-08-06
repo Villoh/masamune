@@ -144,7 +144,11 @@ def _set_fields(app: Table, fields: Mapping[str, str]) -> None:
         if key not in fields:
             continue
         value = fields.get(key, "").strip()
-        if key in {"enabled", "include-universal-patches", "include-experimental-versions"}:
+        if key in {
+            "enabled",
+            "include-universal-patches",
+            "include-experimental-versions",
+        }:
             if not value:
                 app.pop(key, None)
             elif value.lower() in {"true", "false"}:

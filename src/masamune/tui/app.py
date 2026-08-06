@@ -1552,22 +1552,51 @@ class MasamuneApp(App[None]):
             self.notify("Build already running", severity="warning")
             return
         self.show_view("build")
-        missing = [
-            app.package
-            for app in self.dashboard_state.apps
-            if app.enabled
-            and not app.source_dir
-            and not self._has_verified_download(app.package)
-        ]
-        if missing:
-            self._source_prompt_queue = missing
+        missing_sources: list[str] = []
+        missing_downloads: list[str] = []
+        for app in self.dashboard_state.apps:
+            if not app.enabled or app.source_dir:
+                continue
+            architectures = (
+                tuple(Architecture)
+                if app.arch in {"all", "both"}
+                else (Architecture.from_config(app.arch),)
+            )
+            missing = [
+                architecture
+                for architecture in architectures
+                if not self._has_verified_download(app.package, architecture.goopdl)
+            ]
+            if not missing:
+                continue
+            if len(missing) == len(architectures):
+                missing_sources.append(app.package)
+            else:
+                missing_downloads.append(
+                    f"{app.package} ({', '.join(item.value for item in missing)})"
+                )
+        if missing_downloads:
+            message = (
+                "Missing verified APK downloads: "
+                + ", ".join(missing_downloads)
+                + ". Download the missing architecture or change the app architecture "
+                "in Dashboard."
+            )
+            self._set_status(message)
+            self.notify(message, severity="warning")
+            return
+        if missing_sources:
+            self._source_prompt_queue = missing_sources
             self._prompt_local_source()
             return
         self._show_build_confirmation()
 
-    def _has_verified_download(self, package: str) -> bool:
+    def _has_verified_download(
+        self, package: str, architecture: str | None = None
+    ) -> bool:
         return any(
             record.get("package") == package
+            and (architecture is None or record.get("architecture") == architecture)
             for record in self._scan_download_library().values()
         )
 

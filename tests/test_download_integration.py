@@ -6,12 +6,14 @@ from threading import Event
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from masamune.build import BuildError
 from masamune.config import load_config
 from masamune.config_editor import update_app
 from masamune.orchestrator import (
     Reporter,
     _apkmirror_version_code_hint,
     _downloaded_source_directory,
+    _source_directory,
 )
 from masamune.paths import (
     migrate_legacy_downloads,  # pyright: ignore[reportMissingImports]
@@ -47,6 +49,20 @@ class DownloadIntegrationTests(unittest.TestCase):
             with patch("masamune.orchestrator.verify_apk_set", return_value=[]):
                 resolved = _downloaded_source_directory(job, root)
         self.assertEqual(resolved, source)
+
+    def test_missing_download_error_includes_requested_architecture(self) -> None:
+        with TemporaryDirectory() as directory:
+            job = SimpleNamespace(
+                arch="arm-v7a",
+                app=SimpleNamespace(
+                    slug="com-example-app",
+                    package="com.example.app",
+                    version="auto",
+                    source_dir=None,
+                ),
+            )
+            with self.assertRaisesRegex(BuildError, r"com\.example\.app \(arm-v7a\)"):
+                _source_directory(job, download_root=Path(directory))
 
     def test_legacy_downloads_move_under_dedicated_folder(self) -> None:
         with TemporaryDirectory() as directory:
