@@ -12,6 +12,7 @@ from unittest.mock import Mock, call, patch
 
 from masamune.apk import ApkMetadata
 from masamune.build import AUTO_KEYSTORE_PASSWORD, BuildError
+from masamune.config import FallbackConfig, GooglePlayConfig
 from masamune.errors import GooglePlayAuthUnavailable, GooglePlayVersionUnavailable
 from masamune.orchestrator import (  # pyright: ignore[reportMissingImports]
     BuildResult,
@@ -22,6 +23,7 @@ from masamune.orchestrator import (  # pyright: ignore[reportMissingImports]
     _write_summary,
     run_build,
     run_clean,
+    run_download,
     run_patch_catalog,
     run_verify,
 )
@@ -688,6 +690,44 @@ class OrchestratorUxTest(unittest.TestCase):
                 result["removed"],
                 [str((cache / "toolchains").resolve()), str((cache / "tools").resolve())],
             )
+
+    def test_explicit_google_provider_resolves_version_code(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "download"
+            output.mkdir()
+            provenance = output / "provenance.json"
+            provenance.write_text(
+                json.dumps({"version": {"name": "1.2.3", "code": "123"}}),
+                encoding="utf-8",
+            )
+            request = ProviderRequest(
+                "com.example.app", "1.2.3", None, "arm64", output
+            )
+            result = ProviderResult("google-play", output, provenance)
+            with (
+                patch(
+                    "masamune.orchestrator.resolve_version_code_candidate",
+                    return_value=SimpleNamespace(version_code="123"),
+                ) as resolve,
+                patch(
+                    "masamune.orchestrator.fallback_download",
+                    return_value=result,
+                ) as download,
+                patch("masamune.orchestrator.verify_apk_set", return_value=[]),
+                patch("masamune.orchestrator.confirm_version_code"),
+            ):
+                actual = run_download(
+                    request,
+                    cache=root / "cache",
+                    google_play=GooglePlayConfig(None, None, None, None),
+                    fallbacks=FallbackConfig((), ()),
+                    provider_name="google-play",
+                )
+
+            self.assertEqual(actual, result)
+            resolve.assert_called_once()
+            self.assertEqual(download.call_args.args[0].version_code, "123")
 
     def test_google_provider_scopes_proxy_and_translates_failures(self) -> None:
         request = ProviderRequest("com.example.app", "1", "1", "arm64", Path("trusted"))
