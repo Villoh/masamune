@@ -110,6 +110,7 @@ class DownloadIntegrationTests(unittest.TestCase):
                 """[[apps]]
 package = "com.example.app"
 name = "Example"
+include-experimental-versions = true
 [apps.google-play]
 profile = "default"
 [apps.fallbacks]
@@ -125,6 +126,7 @@ direct = ["https://downloads.example/app.apk"]
             app = load_config(path).apps[0]
 
         self.assertEqual(app.name, "Renamed")
+        self.assertTrue(app.include_experimental_versions)
         self.assertEqual(app.google_play.profile, "default")
         self.assertEqual(app.fallbacks.direct, ("https://downloads.example/app.apk",))
 

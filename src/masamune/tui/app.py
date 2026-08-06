@@ -956,6 +956,11 @@ class MasamuneApp(App[None]):
                 if app.include_universal_patches is None
                 else str(app.include_universal_patches).lower()
             ),
+            "include-experimental-versions": (
+                ""
+                if app.include_experimental_versions is None
+                else str(app.include_experimental_versions).lower()
+            ),
             "slug": app.slug,
             "patched-package": app.patched_package or "",
             "expected-signer": app.expected_signer or "",

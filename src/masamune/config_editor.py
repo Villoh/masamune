@@ -22,6 +22,7 @@ _APP_FIELDS = (
     "name",
     "enabled",
     "include-universal-patches",
+    "include-experimental-versions",
     "slug",
     "patched-package",
     "expected-signer",
@@ -140,10 +141,10 @@ def set_exclusive_patches(
 
 def _set_fields(app: Table, fields: Mapping[str, str]) -> None:
     for key in _APP_FIELDS:
-        if key not in fields and key in (_FALLBACK_FIELD_KEYS | _GOOGLE_FIELD_KEYS):
+        if key not in fields:
             continue
         value = fields.get(key, "").strip()
-        if key in {"enabled", "include-universal-patches"}:
+        if key in {"enabled", "include-universal-patches", "include-experimental-versions"}:
             if not value:
                 app.pop(key, None)
             elif value.lower() in {"true", "false"}:
