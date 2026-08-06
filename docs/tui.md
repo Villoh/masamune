@@ -56,12 +56,17 @@ opens the theme selector. `?` shows available keys. `Q` quits.
 
 ## Download flow
 
-Downloads use fixed order: Google Play → APKMirror → Direct. Google credentials
-come from goopdl environment variables; TUI never displays secrets. Direct URLs
-are explicit HTTPS inputs and show their host before confirmation.
+Downloads offer Automatic (Google Play → APKMirror → Direct), Google Play,
+APKMirror, or Direct. Google credentials come from goopdl environment
+variables; TUI never displays secrets. Direct URLs are explicit HTTPS inputs and
+show their host before confirmation.
+
+Destination defaults to `%LOCALAPPDATA%\\masamune` on Windows. Choose another
+folder or reset default at any time. `auto`/`latest` app versions use latest
+available stock in Automatic and Google Play modes.
 
 1. Open Downloads (`3`).
-2. Select configured app, explicit version, architecture, and destination folder.
+2. Select configured app, provider, architecture, and destination folder.
 3. Confirm download. Only this action starts network activity.
 4. Masamune verifies package, version, splits, ABI, signer, hashes, and provenance.
 5. Select the resulting folder manually in Build. Download never changes

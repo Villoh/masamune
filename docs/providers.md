@@ -2,13 +2,13 @@
 
 Masamune downloader runs only from Downloads view. Build never calls providers.
 
-Fixed order:
+User can select one provider or Automatic. Automatic uses:
 
 ```text
 Google Play → APKMirror → Direct
 ```
 
-Only configured fallbacks run. Google Play uses `goopdl==1.2.0` through
+Only configured providers run. Google Play uses `goopdl==1.2.0` through
 `python -m goopdl`. Direct accepts explicit HTTPS APK URLs only; Masamune does
 not discover hosts. APKMirror accepts catalog or asset URLs and resolves release,
 architecture, and APKM assets.

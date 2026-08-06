@@ -90,6 +90,7 @@ from .helpers import (
     _cache_inventory,
     _cell,
     _format_bytes,
+    default_download_path,
     preference_path,
     validate_keybindings,
 )
@@ -191,7 +192,8 @@ class MasamuneApp(App[None]):
         self._build_cancel_event = Event()
         self._download_worker: Worker[object] | None = None
         self._download_cancel_event = Event()
-        self._download_destination: Path | None = None
+        self._download_destination: Path = default_download_path()
+        self._download_provider_name = "automatic"
         self._download_request: ProviderRequest | None = None
         self._download_app: AppConfig | None = None
         self._download_events: list[str] = []
@@ -381,8 +383,18 @@ class MasamuneApp(App[None]):
                             value="arm64-v8a",
                             id="download-arch",
                         )
+                        yield Select(
+                            (
+                                ("Automatic", "automatic"),
+                                ("Google Play", "google-play"),
+                                ("APKMirror", "apkmirror"),
+                                ("Direct", "direct"),
+                            ),
+                            value="automatic",
+                            id="download-provider",
+                        )
                     yield Static(
-                        "Destination: not selected",
+                        "Destination: default",
                         id="download-destination",
                         markup=False,
                     )
@@ -390,6 +402,7 @@ class MasamuneApp(App[None]):
                         yield Button(
                             "Choose destination", id="choose-download-destination"
                         )
+                        yield Button("Reset default", id="reset-download-destination")
                         yield Button(
                             "Download selected", id="start-download", variant="primary"
                         )
@@ -406,7 +419,7 @@ class MasamuneApp(App[None]):
                             "Delete selected", id="delete-download", variant="error"
                         )
                     yield Static(
-                        "Provider order: Google Play → APKMirror → Direct",
+                        "Automatic: Google Play → APKMirror → Direct",
                         id="download-provider-order",
                         markup=False,
                     )
@@ -453,6 +466,7 @@ class MasamuneApp(App[None]):
         self._render_patches([])
         self._load_dashboard()
         self._render_download_apps()
+        self._render_download_destination()
         self._start_cache_inventory()
         self._render_build_history()
         if self.animation_level != "none":
@@ -589,6 +603,7 @@ class MasamuneApp(App[None]):
             "show-bundle-apps": self.action_show_bundle_apps,
             "load-bundle": self.action_load_bundle,
             "choose-download-destination": self.action_choose_download_destination,
+            "reset-download-destination": self.action_reset_download_destination,
             "start-download": self.action_start_download,
             "stop-download": self.action_stop_download,
             "open-download-folder": self.action_open_download_folder,
@@ -991,6 +1006,16 @@ class MasamuneApp(App[None]):
         else:
             selector.value = Select.BLANK
 
+    def _render_download_destination(self) -> None:
+        self.query_one("#download-destination", Static).update(
+            f"Destination: {redact(str(self._download_destination))}"
+        )
+
+    def action_reset_download_destination(self) -> None:
+        self._download_destination = default_download_path()
+        self._render_download_destination()
+        self._set_download_status("Default destination restored")
+
     def _selected_download_app(self) -> AppConfig | None:
         value = self.query_one("#download-app", Select).value
         if value is Select.BLANK:
@@ -1012,9 +1037,7 @@ class MasamuneApp(App[None]):
             return
         if path is not None:
             self._download_destination = path
-            self.query_one("#download-destination", Static).update(
-                f"Destination: {redact(str(path))}"
-            )
+            self._render_download_destination()
             self._set_download_status("Destination selected")
 
     def action_start_download(self) -> None:
@@ -1024,16 +1047,15 @@ class MasamuneApp(App[None]):
         app = self._selected_download_app()
         if app is None:
             return
-        if self._download_destination is None:
-            self._set_download_status("Choose destination folder first")
-            return
-        if app.version in {"auto", "latest"}:
+        provider_name = str(self.query_one("#download-provider", Select).value)
+        requested_version = None if app.version in {"auto", "latest"} else app.version
+        if provider_name == "apkmirror" and requested_version is None:
             self._set_download_status(
-                "Set explicit compatible version before downloading"
+                "APKMirror needs explicit version; use Automatic for latest"
             )
             return
-        version_path = Path(app.version)
-        if version_path.name != app.version or app.version in {".", ".."}:
+        version_path = Path(requested_version or "latest")
+        if version_path.name != (requested_version or "latest") or requested_version in {".", ".."}:
             self._set_download_status("Version is not a safe download path")
             return
         architecture = Architecture.from_config(
@@ -1053,10 +1075,17 @@ class MasamuneApp(App[None]):
             if direct_hosts
             else "Direct: not configured"
         )
+        provider_label = {
+            "automatic": "Automatic",
+            "google-play": "Google Play",
+            "apkmirror": "APKMirror",
+            "direct": "Direct",
+        }[provider_name]
+        self._download_provider_name = provider_name
         self._download_app = app
         self._download_request = ProviderRequest(
             app.package,
-            app.version,
+            requested_version,
             app.version_code,
             architecture.goopdl,
             output,
@@ -1068,11 +1097,11 @@ class MasamuneApp(App[None]):
                     (
                         "Download verified stock",
                         f"App: {app.name} · {app.package}",
-                        f"Version: {app.version}",
+                        f"Version: {requested_version or 'latest available'}",
                         f"ABI: {architecture.value}",
-                        "Source: Google Play → APKMirror → Direct",
+                        f"Provider: {provider_label}",
+                        direct_note if provider_name in {"automatic", "direct"} else "",
                         f"Destination: {redact(str(output))}",
-                        direct_note,
                         "Download starts only after confirmation.",
                     )
                 ),
@@ -1372,6 +1401,7 @@ class MasamuneApp(App[None]):
             cache=self.args.cache,
             google_play=app.google_play,
             fallbacks=app.fallbacks,
+            provider_name=self._download_provider_name,
         )
 
     def _record_download_output(self, line: str) -> None:

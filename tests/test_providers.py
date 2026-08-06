@@ -265,6 +265,14 @@ class GooglePlayProviderTest(unittest.TestCase):
         ):
             provider.download(request)
 
+    def test_google_allows_latest_without_version_name_or_code(self) -> None:
+        request = ProviderRequest(
+            "com.example.app", None, None, "arm64", Path("trusted")
+        )
+        provider = GooglePlayProvider(None, None, None, None, runner=lambda _: None)
+        result = provider.download(request)
+        self.assertEqual(result.provider, "google-play")
+
     def test_missing_google_version_code_falls_back(self) -> None:
         request = ProviderRequest(
             "com.example.app", "1.2.3", None, "arm64", Path("trusted")

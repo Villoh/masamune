@@ -66,7 +66,10 @@ def _cached_result(
         data.get("package") != request.package
         or data.get("architecture") != request.arch
         or not isinstance(version, dict)
-        or version.get("name") != request.version_name
+        or (
+            request.version_name is not None
+            and version.get("name") != request.version_name
+        )
         or (
             request.version_code is not None
             and version.get("code") != request.version_code

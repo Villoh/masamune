@@ -165,11 +165,13 @@ are never displayed or stored by TUI.
 
 ## Download flow
 
-Downloads require an explicit action in Downloads (`3`). Fixed provider order is
-Google Play → APKMirror → Direct. Credentials come from goopdl environment
-variables and never appear in TUI, logs, or provenance. Every result is
-independently verified before atomic publication. Select its folder manually in
-Build afterward; `source-dir` is never changed automatically.
+Downloads require an explicit action in Downloads (`3`). User can choose
+Automatic (Google Play → APKMirror → Direct), Google Play, APKMirror, or Direct.
+Destination defaults to `%LOCALAPPDATA%\\masamune` on Windows and can be changed
+or reset. Credentials come from goopdl environment variables and never appear
+in TUI, logs, or provenance. Every result is independently verified before
+atomic publication. Select its folder manually in Build afterward; `source-dir`
+is never changed automatically.
 
 ## Build flow
 

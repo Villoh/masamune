@@ -239,9 +239,9 @@ def download_google_play(
     region: str | None,
     dispenser: str | None,
 ) -> ProviderResult:
-    if request.version_code is None:
+    if request.version_code is None and request.version_name is not None:
         raise GooglePlayVersionUnavailable(
-            "Google Play requires a resolved version code"
+            "Google Play requires a resolved version code for requested version"
         )
     if request.output.exists() or request.output.is_symlink():
         raise FileExistsError(
@@ -308,8 +308,10 @@ class GooglePlayProvider:
     runner: Callable[[ProviderRequest], object] | None = None
 
     def download(self, request: ProviderRequest) -> ProviderResult:
-        if request.version_code is None:
-            raise VersionUnavailable("Google Play requires a resolved version code")
+        if request.version_code is None and request.version_name is not None:
+            raise VersionUnavailable(
+                "Google Play requires a resolved version code for requested version"
+            )
         if request.output.exists():
             verify_apk_set(
                 request.output,

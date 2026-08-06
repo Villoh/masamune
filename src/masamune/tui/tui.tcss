@@ -293,7 +293,8 @@ ToastRack {
     min-height: 8;
 }
 
-.bundle-narrow #bundle-source-actions {
+.bundle-narrow #bundle-source-actions,
+.bundle-narrow #download-buttons {
     layout: vertical;
     height: auto;
 }

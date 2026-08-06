@@ -208,6 +208,14 @@ def preference_path() -> Path:
     return root / "masamune" / "tui.json"
 
 
+def default_download_path() -> Path:
+    """Return platform-local default folder for user-triggered downloads."""
+    if os.name == "nt" and os.environ.get("LOCALAPPDATA"):
+        return Path(os.environ["LOCALAPPDATA"]) / "masamune"
+    root = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
+    return root / "masamune"
+
+
 def _normalize_binding(key: str) -> str:
     normalized = "+".join(
         _normalize_key_list(part) for part in key.lower().strip().split("+")

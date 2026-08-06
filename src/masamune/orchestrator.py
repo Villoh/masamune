@@ -173,11 +173,14 @@ def run_download(
     fallbacks: FallbackConfig,
     reporter: Reporter | None = None,
     cancel_event: Event | None = None,
+    provider_name: str = "automatic",
 ) -> ProviderResult:
     """Download and publish one verified APK set outside build orchestration."""
     reporter = reporter or Reporter()
     if cancel_event is not None and cancel_event.is_set():
         raise BuildCancelled("download cancelled by user")
+    if provider_name not in {"automatic", "google-play", "apkmirror", "direct"}:
+        raise ValueError(f"unsupported provider: {provider_name}")
     candidate = (
         resolve_version_code_candidate(
             cache,
@@ -197,7 +200,7 @@ def run_download(
                 )
             ),
         )
-        if request.version_name is not None
+        if request.version_name is not None and provider_name == "automatic"
         else None
     )
     resolved_request = ProviderRequest(
@@ -215,19 +218,22 @@ def run_download(
         arch=request.arch,
         destination=request.output,
     )
-    provider = fallback_download(
-        resolved_request,
-        providers_for(
-            GooglePlayProvider(
-                profile=google_play.profile,
-                region=google_play.country,
-                dispenser=google_play.dispenser,
-                proxy=google_play.proxy,
-            ),
-            direct=fallbacks.direct,
-            apkmirror=fallbacks.apkmirror,
+    available_providers = providers_for(
+        GooglePlayProvider(
+            profile=google_play.profile,
+            region=google_play.country,
+            dispenser=google_play.dispenser,
+            proxy=google_play.proxy,
         ),
+        direct=fallbacks.direct,
+        apkmirror=fallbacks.apkmirror,
     )
+    providers = (
+        available_providers
+        if provider_name == "automatic"
+        else tuple(item for item in available_providers if item.name == provider_name)
+    )
+    provider = fallback_download(resolved_request, providers)
     if cancel_event is not None and cancel_event.is_set():
         raise BuildCancelled("download cancelled by user")
     source = _read_json(provider.provenance, "source provenance")
