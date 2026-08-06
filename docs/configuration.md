@@ -23,8 +23,10 @@ apkmirror = ["https://www.apkmirror.com/apk/example/youtube/"]
 direct = ["https://downloads.example/youtube-base.apk"]
 ```
 
-Supported fallback keys are `apkmirror` and `direct`. Archive/Uptodown fields
-are unsupported. URLs must be HTTPS, without credentials or fragments.
+Supported fallback keys are `apkmirror` and `direct`. APKMirror URLs are
+optional; when omitted, Masamune discovers catalog URL from package name.
+Archive/Uptodown fields are unsupported. URLs must be HTTPS, without
+credentials or fragments.
 
 Downloads view requires explicit app, provider, architecture, destination, and
 confirmation. Downloads resolves Morphe patch-compatible versions and lets user

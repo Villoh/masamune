@@ -8,10 +8,11 @@ User can select one provider or Automatic. Automatic uses:
 Google Play → APKMirror → Direct
 ```
 
-Only configured providers run. Google Play uses `goopdl==1.2.0` through
-`python -m goopdl`. Direct accepts explicit HTTPS APK URLs only; Masamune does
-not discover hosts. APKMirror accepts catalog or asset URLs and resolves release,
-architecture, and APKM assets.
+Google Play uses `goopdl==1.2.0` through `python -m goopdl`. Direct accepts
+explicit HTTPS APK URLs only; Masamune does not discover hosts. APKMirror accepts
+optional catalog or asset URLs; when none are configured, it discovers the
+catalog from the Android package, then resolves release, architecture, and APKM
+assets.
 
 Recoverable failures advance provider chain: unavailable provider, auth/rate
 limit, missing version, or ambiguous catalog. Integrity failures stop download:

@@ -144,14 +144,15 @@ Use only three providers:
 google-play → apkmirror → direct
 ```
 
-The order is fixed in automatic mode. Only configured fallback entries are attempted.
+The order is fixed in automatic mode. Google Play and direct use their configured
+inputs; APKMirror catalog URLs are optional and can be discovered from package name.
 
 `direct` is user responsibility: it accepts explicit HTTPS APK/asset URLs only. Masamune does not discover or endorse that host. It still verifies the downloaded artifact independently before publication. The confirmation modal must show the direct host and require the user to acknowledge it before download.
 
 | Provider | Input | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `google-play` | `goopdl`, account/dispenser config | Preferred official delivery; split-aware and manifest-verified. |
-| `apkmirror` | APK URL or catalog URL | Only supported catalog fallback; resolves catalog → release → ABI variant → asset. Supports `.apkm`. |
+| `apkmirror` | Optional APK URL or catalog URL | Supported catalog fallback; discovers catalog from package when omitted, then resolves catalog → release → ABI variant → asset. Supports `.apkm`. |
 | `direct` | Explicit HTTPS APK URLs | User-selected/self-hosted source. No catalog scraping or host discovery. |
 
 Provider contract:
@@ -445,7 +446,7 @@ After successful download, show a compact result and return to Downloads view:
 Use distinct user-facing messages:
 
 | State | UI behavior |
-|---|---|
+| --- | --- |
 | Provider unavailable | Show provider and reason; chain may continue internally. |
 | Version unavailable | Show all attempted providers and requested version; no retry loop. |
 | Integrity failure | Red/error state; stop chain; tell user trusted output was not published. |
