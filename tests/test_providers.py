@@ -62,6 +62,23 @@ class ProviderFallbackTest(unittest.TestCase):
         self.assertEqual(result.provider, "apkmirror")
         self.assertEqual([provider.calls for provider in providers], [1, 1, 1])
 
+    def test_fallback_error_keeps_provider_reason(self) -> None:
+        request = ProviderRequest(
+            "com.example.app", "1.2.3", "123", "arm64", Path("trusted")
+        )
+        with self.assertRaisesRegex(
+            VersionUnavailable, "apkmirror: APKMirror request failed"
+        ):
+            fallback_download(
+                request,
+                (
+                    StubProvider(
+                        "apkmirror",
+                        error=ProviderUnavailable("APKMirror request failed"),
+                    ),
+                ),
+            )
+
     def test_only_recoverable_error_falls_through(self) -> None:
         request = ProviderRequest(
             "com.example.app", "1.2.3", "123", "arm64", Path("trusted")

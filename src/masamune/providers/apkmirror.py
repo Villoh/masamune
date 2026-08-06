@@ -47,11 +47,12 @@ class ApkMirrorProvider:
     name: str = "apkmirror"
 
     def download(self, request: ProviderRequest) -> ProviderResult:
-        if not self.urls:
-            raise ProviderUnavailable("apkmirror source is not configured")
         version_name = request.version_name
         if version_name is None:
             raise VersionUnavailable("apkmirror requires a version name")
+        urls = self.urls or (
+            resolve_apkmirror_catalog(request.package, opener=self.opener),
+        )
         assets = [
             resolve_apkmirror_asset(
                 url,
@@ -61,7 +62,7 @@ class ApkMirrorProvider:
             )
             if not url.lower().endswith(".apk")
             else ApkMirrorAsset(url, False, request.version_code or "")
-            for url in self.urls
+            for url in urls
         ]
         try:
             return _download_assets(
@@ -84,7 +85,7 @@ class ApkMirrorProvider:
                     )
                     if not url.lower().endswith(".apk")
                     else ApkMirrorAsset(url, False, request.version_code or "")
-                    for url in self.urls
+                    for url in urls
                 ]
             except (IntegrityMetadataError, ProviderAmbiguous):
                 raise error from None

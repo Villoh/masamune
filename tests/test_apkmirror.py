@@ -1,8 +1,13 @@
 import io
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 from masamune.errors import IntegrityMetadataError
+from masamune.providers import ProviderRequest, ProviderResult
 from masamune.providers.apkmirror import (
+    ApkMirrorAsset,
+    ApkMirrorProvider,
     resolve_apkmirror_asset,
     resolve_apkmirror_catalog,
     resolve_apkmirror_version_code,
@@ -61,6 +66,39 @@ def fake_opener(pages):
 
 
 class ApkMirrorResolverTest(unittest.TestCase):
+    def test_provider_discovers_catalog_when_no_url_is_configured(self) -> None:
+        request = ProviderRequest(
+            "com.google.android.youtube", "21.04.223", "", "arm64", Path("output")
+        )
+        result = ProviderResult("apkmirror", request.output, Path("provenance.json"))
+
+        def opener(*_args, **_kwargs):
+            return None
+
+        with (
+            patch(
+                "masamune.providers.apkmirror.resolve_apkmirror_catalog",
+                return_value="https://www.apkmirror.com/apk/google-inc/youtube/",
+            ) as catalog,
+            patch(
+                "masamune.providers.apkmirror.resolve_apkmirror_asset",
+                return_value=ApkMirrorAsset(
+                    "https://example.test/youtube.apk", False, "123"
+                ),
+            ) as asset,
+            patch("masamune.providers.apkmirror._download_assets", return_value=result),
+        ):
+            provider = ApkMirrorProvider((), opener=opener)
+            self.assertIs(provider.download(request), result)
+
+        catalog.assert_called_once_with(request.package, opener=provider.opener)
+        asset.assert_called_once_with(
+            "https://www.apkmirror.com/apk/google-inc/youtube/",
+            version_name=request.version_name,
+            arch=request.arch,
+            opener=provider.opener,
+        )
+
     def test_resolves_catalog_page_to_direct_asset_for_requested_arch(self) -> None:
         opener, calls = fake_opener(
             {

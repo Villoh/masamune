@@ -143,8 +143,9 @@ def providers_for(
 
 
 def _fallback_reason(error: ProviderFallbackError) -> str:
+    reason = str(error).strip()
     if isinstance(error, ProviderAmbiguous):
-        return "ambiguous source"
+        return reason or "ambiguous source"
     if isinstance(error, ProviderUnavailable):
-        return "provider unavailable"
-    return "requested version unavailable"
+        return reason or "provider unavailable"
+    return reason or "requested version unavailable"
