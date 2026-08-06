@@ -760,6 +760,12 @@ class AppEditorScreen(ModalScreen[dict[str, str] | None]):
                 == "true",
                 id="edit-include-universal-patches",
             )
+            yield Checkbox(
+                "Include experimental versions",
+                value=self.values.get("include-experimental-versions", "").lower()
+                == "true",
+                id="edit-include-experimental-versions",
+            )
             yield Label("Slug (optional)")
             yield Input(self.values.get("slug", ""), id="edit-slug")
             yield Label("Patched package (optional)")
@@ -867,6 +873,9 @@ class AppEditorScreen(ModalScreen[dict[str, str] | None]):
             "enabled": str(self.query_one("#edit-enabled", Checkbox).value).lower(),
             "include-universal-patches": str(
                 self.query_one("#edit-include-universal-patches", Checkbox).value
+            ).lower(),
+            "include-experimental-versions": str(
+                self.query_one("#edit-include-experimental-versions", Checkbox).value
             ).lower(),
             "slug": self.query_one("#edit-slug", Input).value,
             "patched-package": self.query_one("#edit-patched-package", Input).value,
