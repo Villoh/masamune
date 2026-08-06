@@ -204,7 +204,8 @@ def run_download(
                 )
             ),
         )
-        if request.version_name is not None and provider_name == "automatic"
+        if request.version_name is not None
+        and provider_name in {"automatic", "google-play"}
         else None
     )
     resolved_request = ProviderRequest(
