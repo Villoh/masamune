@@ -313,6 +313,162 @@ Expose advanced provider fields in `AppEditorScreen` only after core flow works:
 
 Use comma-separated URLs in UI, preserving current `config_editor.py` round-trip behavior. Keep secrets out of TOML and logs.
 
+## UX/UI specification
+
+The downloader must feel like an extension of the current source picker, not a separate app. Reuse existing Textual modal screens, `FullWidthDataTable`, status bar, Build events, native picker patterns, and keyboard navigation.
+
+### MVP entry point
+
+When Start build finds an enabled app without `source-dir`, replace the current local-only modal with a source-choice modal:
+
+```text
+┌─ Stock source ───────────────────────────────────────────────┐
+│ YouTube · com.google.android.youtube                         │
+│ Version: 21.04.223    Architecture: arm64-v8a                │
+│                                                              │
+│ ○ Select APK                                                 │
+│ ○ Select split folder                                        │
+│ ○ Download verified stock APKs                               │
+│                                                              │
+│                                           Cancel             │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Rules:
+
+- Keep local choices first.
+- Make download an explicit action; never trigger it because `source-dir` is absent.
+- Focus first actionable choice.
+- `Escape` cancels current app source selection and build, matching current behavior.
+- For multiple missing apps, return to this modal for next app only after current source choice succeeds.
+
+### Download confirmation modal
+
+Selecting download opens a second modal before network access:
+
+```text
+┌─ Download verified stock ────────────────────────────────────┐
+│ App       YouTube                                             │
+│ Package   com.google.android.youtube                         │
+│ Version   21.04.223                                          │
+│ ABI       arm64-v8a                                           │
+│ Source    Google Play → APKMirror → Uptodown                 │
+│ Cache     <cache>/trusted/youtube/arm64-v8a/21.04.223        │
+│                                                              │
+│ Google Play credentials: available / dispenser / unavailable  │
+│ Fallbacks: configured / none                                 │
+│                                                              │
+│                         Download       Back                  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Implementation notes:
+
+- Version and ABI are read-only here; they come from build compatibility and job expansion.
+- Provider order is displayed, but not editable in this modal.
+- Show sanitized cache path only; redact user names if existing `redact()` policy requires it.
+- Show credential state, never values, tokens, email secrets, proxy credentials, or dispenser query strings.
+- If no fallback is configured, say `Google Play only` rather than implying automatic mirrors.
+- `Back` returns to source choice. `Download` is the only button that starts network activity.
+
+### Download progress
+
+Use current Build view instead of creating a second progress implementation.
+
+On confirmation:
+
+1. Close modal.
+2. Switch to Build view.
+3. Set status to `Downloading verified stock`.
+4. Add one job row per app/architecture.
+5. Stream sanitized reporter events into the existing Events panel.
+6. Keep `Stop build` enabled and map it to provider cancellation.
+
+Expected event labels:
+
+```text
+[download] resolving Google Play delivery
+[download] downloading verified stock
+[download] Google Play unavailable; trying APKMirror
+[verify] package/version/ABI/signer verified
+[download] trusted stock acquired provider=apkmirror
+```
+
+Do not show raw `goopdl` output in the alternate-screen TUI. The provider worker owns subprocess output and forwards only redacted, useful events.
+
+### Download result modal
+
+After successful download, show a compact result before continuing the build:
+
+```text
+┌─ Stock APK verified ─────────────────────────────────────────┐
+│ Provider       Google Play                                  │
+│ Version        21.04.223 (210422300)                       │
+│ Architecture   arm64-v8a                                   │
+│ Files          8                                            │
+│ Signer         <short SHA-256 fingerprint>                 │
+│ Cache          trusted/youtube/arm64-v8a/21.04.223          │
+│                                                              │
+│ Verified source will be used for this build.                │
+│                                      Continue                │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Never require user to manually copy a cache path into `source-dir`.
+- Do not persist `source-dir` for a downloaded source in MVP.
+- Build continues using the trusted `ProviderResult` path in memory/cache.
+- Full fingerprint remains available in provenance and build result; UI may shorten it for readability.
+
+### Failure states
+
+Use distinct user-facing messages:
+
+| State | UI behavior |
+|---|---|
+| Provider unavailable | Show provider and reason; chain may continue internally. |
+| Version unavailable | Show all attempted providers and requested version; no retry loop. |
+| Integrity failure | Red/error state; stop chain; tell user trusted output was not published. |
+| Cancelled | Return to Build view with `Download cancelled`; leave no partial trusted output. |
+| Cached verified source | Show `Reusing verified stock cache` and continue without network. |
+
+Do not expose traceback, cookies, signed URLs, HTTP authorization headers, or raw provider HTML in modal text. Keep detailed sanitized diagnostics in build log.
+
+### Future Downloads view
+
+Only add after MVP proves stable. Add view key `7` and command-palette entry `downloads`.
+
+Layout:
+
+```text
+┌─ Downloads ──────────────────────────────────────────────────┐
+│ App        Version       ABI          Provider       State    │
+│ YouTube    21.04.223     arm64-v8a    Google Play     cached  │
+│ YouTube    21.04.223     armeabi-v7a  APKMirror       ready   │
+│ Reddit     2025.08.0     arm64-v8a    —               missing │
+│                                                              │
+│ Download selected   Open cache   Delete cache   Refresh       │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Context actions:
+
+- Download selected.
+- Open trusted cache folder.
+- Delete selected verified source after confirmation.
+- Refresh cache/provenance state.
+
+Keep provider configuration in App Editor/advanced config, not in this table. Keep downloads view focused on artifacts and state.
+
+### Visual consistency and accessibility
+
+- Reuse current modal IDs/classes and theme tokens; do not introduce a second visual language.
+- Keep labels literal with `markup=False` or `Text`; provider metadata is untrusted.
+- Every action must be keyboard reachable and have a visible button label.
+- Use `aria`/accessible labels where Textual supports them.
+- Maintain compact layout at narrow terminal widths; use `VerticalScroll` for long provider/error text.
+- Color is supplemental: include words such as `verified`, `cached`, `failed`, `cancelled`.
+- Preserve current footer/status and `Escape`/`Stop build` semantics.
+
 ## Worker integration
 
 Port the old provider hooks from Morphe Builder:
