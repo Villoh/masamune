@@ -11,7 +11,7 @@ from contextlib import suppress
 from pathlib import Path
 from threading import Lock
 
-from rich.text import Text
+from rich.text import Text  # pyright: ignore[reportMissingImports]
 from textual.app import App  # pyright: ignore[reportMissingImports]
 from textual.binding import (  # pyright: ignore[reportMissingImports]
     Binding,
@@ -70,6 +70,7 @@ _VIEWS = (
     ("dashboard", "Dashboard", "▦"),
     ("bundles", "Bundles", "≡"),
     ("downloads", "Downloads", "⇩"),
+    ("download-library", "Downloaded", "▤"),
     ("build", "Build", "▶"),
     ("builds", "Builds", "▤"),
     ("patches", "Patches", "≡"),
