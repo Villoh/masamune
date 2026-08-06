@@ -119,7 +119,6 @@ from .models import (
     PatchOptionValue,
     Preferences,
 )
-from .native_picker import choose_source
 from .screens import (  # pyright: ignore[reportMissingImports]
     AppEditorScreen,
     BuildContextMenuScreen,
@@ -419,10 +418,6 @@ class MasamuneApp(App[None]):
                     )
                     with Horizontal(id="download-buttons"):
                         yield Button(
-                            "Choose destination", id="choose-download-destination"
-                        )
-                        yield Button("Reset default", id="reset-download-destination")
-                        yield Button(
                             "Download selected", id="start-download", variant="primary"
                         )
                         yield Button(
@@ -651,8 +646,6 @@ class MasamuneApp(App[None]):
             "refresh-bundles": self.action_load_community_bundles,
             "show-bundle-apps": self.action_show_bundle_apps,
             "load-bundle": self.action_load_bundle,
-            "choose-download-destination": self.action_choose_download_destination,
-            "reset-download-destination": self.action_reset_download_destination,
             "resolve-download-versions": self.action_resolve_download_versions,
             "start-download": self.action_start_download,
             "stop-download": self.action_stop_download,
@@ -1156,11 +1149,6 @@ class MasamuneApp(App[None]):
             f"Destination: {redact(str(self._download_destination))}"
         )
 
-    def action_reset_download_destination(self) -> None:
-        self._download_destination = default_download_path()
-        self._render_download_destination()
-        self._set_download_status("Default destination restored")
-
     def _selected_download_app(self) -> AppConfig | None:
         value = self.query_one("#download-app", Select).value
         if value is Select.BLANK:
@@ -1173,17 +1161,6 @@ class MasamuneApp(App[None]):
         if app is None:
             self._set_download_status("Selected application is unavailable")
         return app
-
-    def action_choose_download_destination(self) -> None:
-        try:
-            path = choose_source("folder")
-        except Exception as error:
-            self._set_download_status(f"Native picker unavailable: {error}")
-            return
-        if path is not None:
-            self._download_destination = path
-            self._render_download_destination()
-            self._set_download_status("Destination selected")
 
     def action_start_download(self) -> None:
         if self._download_worker is not None and not self._download_worker.is_finished:
