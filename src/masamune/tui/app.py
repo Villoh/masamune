@@ -398,7 +398,9 @@ class MasamuneApp(App[None]):
                         )
                     with Horizontal(id="download-version-actions"):
                         yield Select(
-                            (), prompt="Resolve patch-compatible versions", id="download-version"
+                            (),
+                            prompt="Resolve patch-compatible versions",
+                            id="download-version",
                         )
                         yield Button("Resolve versions", id="resolve-download-versions")
                     yield Static(
@@ -1005,7 +1007,7 @@ class MasamuneApp(App[None]):
         selector = self.query_one("#download-app", Select)
         current = selector.value
         selector.set_options(
-            (Text(f"{app.name} · {app.package}"), app.package)
+            (Text(app.name), app.package)
             for app in self.dashboard_state.apps
             if app.enabled
         )
@@ -1021,7 +1023,10 @@ class MasamuneApp(App[None]):
         app = self._selected_download_app()
         if app is None:
             return
-        if self._download_version_worker is not None and not self._download_version_worker.is_finished:
+        if (
+            self._download_version_worker is not None
+            and not self._download_version_worker.is_finished
+        ):
             self._set_download_status("Resolving patch-compatible versions")
             return
         selector = self.query_one("#download-version", Select)
@@ -1034,11 +1039,11 @@ class MasamuneApp(App[None]):
 
     def _render_download_versions(self, result: Mapping[str, object]) -> None:
         raw_versions = result.get("versions", ())
-        versions = tuple(
-            str(value)
-            for value in raw_versions
-            if isinstance(value, str)
-        ) if isinstance(raw_versions, (list, tuple)) else ()
+        versions = (
+            tuple(str(value) for value in raw_versions if isinstance(value, str))
+            if isinstance(raw_versions, (list, tuple))
+            else ()
+        )
         self._download_versions = versions
         selector = self.query_one("#download-version", Select)
         selector.set_options((version, version) for version in versions)
@@ -1097,7 +1102,9 @@ class MasamuneApp(App[None]):
         provider_name = str(self.query_one("#download-provider", Select).value)
         selected_version = self.query_one("#download-version", Select).value
         if selected_version is Select.BLANK:
-            self._set_download_status("Resolve and select a patch-compatible version first")
+            self._set_download_status(
+                "Resolve and select a patch-compatible version first"
+            )
             return
         requested_version = str(selected_version)
         version_path = Path(requested_version)
@@ -1437,7 +1444,9 @@ class MasamuneApp(App[None]):
         config_path = self.dashboard_state.config_path
         if config_path is None:
             raise RuntimeError("configuration is not loaded")
-        return run_download_versions(config_path, cache=self.args.cache, package=package)
+        return run_download_versions(
+            config_path, cache=self.args.cache, package=package
+        )
 
     @work(thread=True, exit_on_error=False, name="download")
     def run_download_worker(self) -> object:
@@ -1987,7 +1996,9 @@ class MasamuneApp(App[None]):
                 if isinstance(result, Mapping):
                     self._render_download_versions(result)
                 else:
-                    self._set_download_status("Version resolution returned invalid data")
+                    self._set_download_status(
+                        "Version resolution returned invalid data"
+                    )
             elif event.state is WorkerState.ERROR:
                 self._set_download_status(
                     f"Version resolution failed: {self._describe(event.worker.error)}"
