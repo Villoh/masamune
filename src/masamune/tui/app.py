@@ -1146,7 +1146,7 @@ class MasamuneApp(App[None]):
         )
         self.push_screen(
             ConfirmScreen(
-                "\\n".join(
+                "\n".join(
                     (
                         "Download verified stock",
                         f"App: {app.name} · {app.package}",
@@ -1196,7 +1196,7 @@ class MasamuneApp(App[None]):
             return
         self.push_screen(
             ConfirmScreen(
-                f"Delete verified download?\\n{redact(str(path))}\\nThis cannot be undone.",
+                f"Delete verified download?\n{redact(str(path))}\nThis cannot be undone.",
                 confirm_label="Delete download",
                 confirm_variant="error",
             ),
@@ -1254,7 +1254,7 @@ class MasamuneApp(App[None]):
 
     def _render_download_events(self) -> None:
         self.query_one("#download-events", Static).update(
-            "\\n".join(self._download_events) or "No download events."
+            "\n".join(self._download_events) or "No download events."
         )
 
     def action_start_build(self) -> None:
@@ -1467,7 +1467,7 @@ class MasamuneApp(App[None]):
         )
 
     def _record_download_output(self, line: str) -> None:
-        for message in line.replace("\\r", "\\n").splitlines():
+        for message in line.replace("\r", "\n").splitlines():
             message = redact(message.strip())
             if message:
                 self._relay_download_event({"event": "provider", "message": message})
