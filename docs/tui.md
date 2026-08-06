@@ -22,9 +22,7 @@ The explicit launcher accepts configuration options:
 uv run masamune tui \
   --config morphe.toml \
   --cache .cache/masamune \
-  --output build \
-  --keystore .github/masamune.p12 \
-  --keystore-alias masamune
+  --output build
 ```
 
 ## Local APK sources
@@ -93,10 +91,9 @@ validation succeeds. Unsupported TOML fields remain safe to edit manually.
 
 ## Keystores
 
-A checkout uses the bundled public template key for local test builds. Outside a
-checkout, omitting `--keystore` creates a private per-user key in the cache.
-Private keystore passwords come only from `MORPHE_KEYSTORE_PASSWORD` and are not
-shown or persisted by TUI.
+Omitting `--keystore` creates a private per-user key in the cache. Private
+keystore passwords come only from `MORPHE_KEYSTORE_PASSWORD` when an explicit
+keystore is supplied; they are not shown or persisted by TUI.
 
 ## Current limits
 

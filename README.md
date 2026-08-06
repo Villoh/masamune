@@ -57,8 +57,8 @@ uber-apk-signer are prepared in the user cache when a build starts.
   Magisk/KernelSU modules.
 - **Background execution**: current stage, per-job status, redacted events, and
   build logs remain visible while tools run.
-- **Signing controls**: bundled public template keystore for checkout testing,
-  or a private user keystore for real signing.
+- **Signing controls**: auto-generated per-user keystore, or an explicit
+  private keystore for real signing.
 - **Build history**: completed, failed, and cancelled builds remain available
   with output paths and summaries.
 - **Safe cache cleanup**: inspect cache areas and remove only disposable data.
@@ -128,9 +128,7 @@ fields remain safe to edit manually.
 masamune tui \
   --config morphe.toml \
   --cache /path/to/cache \
-  --output build \
-  --keystore /path/outside/repository/masamune.p12 \
-  --keystore-alias masamune
+  --output build
 ```
 
 | Option | Default | Meaning |
@@ -138,7 +136,7 @@ masamune tui \
 | `--config PATH` | User config path | Configuration displayed and edited by TUI. |
 | `--cache PATH` | Platform cache root | Toolchain, patch, and build cache. |
 | `--output PATH` | `build` | Atomic build publication directory. |
-| `--keystore PATH` | Bundled template in checkout; generated key otherwise | Signing keystore. |
+| `--keystore PATH` | Generated per-user key under cache | Optional external signing keystore. |
 | `--keystore-alias ALIAS` | `masamune` | Signing alias. |
 
 Private keystore passwords are read only from `MORPHE_KEYSTORE_PASSWORD`. They
@@ -227,8 +225,8 @@ cache. It never downloads stock APKs.
 - Sensitive passwords and subprocess output are redacted.
 - Failed builds publish no partial output.
 
-The bundled template keystore is for local test builds only. It does not prove
-publisher identity. Use a private keystore for distributable builds.
+Generated keys are for local builds only. Use an explicit private keystore for
+distributable builds.
 
 ## Current limits
 
