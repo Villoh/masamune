@@ -145,6 +145,13 @@ def save_preferences(preferences: Preferences, path: Path | None = None) -> None
     _save_preferences(preferences, path or preference_path())
 
 
+def _display_path(path: Path) -> str:
+    try:
+        return os.path.relpath(path)
+    except ValueError:
+        return str(path)
+
+
 def builds_history_path() -> Path:
     return preference_path().parent / "builds.json"
 
@@ -1685,7 +1692,7 @@ class MasamuneApp(App[None]):
         keystore = (
             "auto-generated per-user key (first build)"
             if self.args.keystore is None
-            else redact(os.path.relpath(self.args.keystore))
+            else redact(_display_path(self.args.keystore))
         )
         password_note = (
             "Auto-generated key manages its own password."
@@ -2538,7 +2545,7 @@ class MasamuneApp(App[None]):
         keystore = (
             "auto-generated per-user key (first build)"
             if self.args.keystore is None
-            else redact(os.path.relpath(self.args.keystore))
+            else redact(_display_path(self.args.keystore))
         )
         paths_text = "\n".join(
             (
