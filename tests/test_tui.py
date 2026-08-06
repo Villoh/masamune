@@ -64,6 +64,8 @@ def content(app, identifier: str) -> str:
 
 
 async def confirm_build(pilot, app, *, accept: bool = True) -> None:
+    if app._splash_active:
+        app.dismiss_splash()
     await pilot.pause(0.1)
     app.action_start_build()
     await pilot.pause(0.1)
@@ -1078,6 +1080,8 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             with patch("masamune.tui.app.run_build") as run_build:
                 async with app.run_test() as pilot:
                     await pilot.press("x")
+                    app.dismiss_splash()
+                    await pilot.pause(0.1)
                     app.action_start_build()
                     await pilot.pause()
                     confirmation = str(
@@ -1295,6 +1299,7 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             app.args.keystore = keystore
             async with app.run_test(size=(140, 40)) as pilot:
                 await pilot.press("x")
+                app.dismiss_splash()
                 await pilot.pause(0.1)
                 app.action_show_cache()
                 await pilot.pause()
