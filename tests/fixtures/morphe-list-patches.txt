@@ -1,0 +1,34 @@
+[32mINFO:[0m Name: Hide ads
+Enabled: true
+Compatible packages:
+	Package name: com.google.android.youtube
+	Compatible versions:
+		21.04.223
+		20.51.39
+
+Name: SponsorBlock
+Enabled: true
+Compatible packages:
+	Package name: com.google.android.youtube
+	Compatible versions:
+		21.04.223
+		20.31.42
+
+Name: Legacy only
+Enabled: false
+Compatible packages:
+	Package name: com.google.android.youtube
+	Compatible versions:
+		19.00.1
+
+Name: Music only
+Enabled: true
+Compatible packages:
+	Package name: com.google.android.apps.youtube.music
+	Compatible versions:
+		8.10.0
+
+Name: Change package name
+Enabled: false
+Compatible packages:
+	Package name: (universal)

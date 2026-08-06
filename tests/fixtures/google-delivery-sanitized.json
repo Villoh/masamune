@@ -1,0 +1,33 @@
+{
+  "package": "com.google.android.apps.youtube.music",
+  "version_name": "9.28.51",
+  "version_code": "92851240",
+  "architecture": "arm64",
+  "base": {
+    "fields": {
+      "1": 77634024,
+      "2": "UEbRc_XAcax0t5DbGqKRfYbLKLU",
+      "19": "nYs1gv9fc_jAHMaR6WrQhkVY-tSSXbKIycy7OzrntYA"
+    }
+  },
+  "splits": [
+    {
+      "fields": {
+        "1": "config.en",
+        "2": 254162,
+        "4": "7UbK6sTHve1k4hSUqQvapsscqR8",
+        "9": "skFHCefZpyfR5LAq-3n-2teuJX8NYgz4itQL7F23M9k"
+      }
+    },
+    {
+      "fields": {
+        "1": "config.xxhdpi",
+        "2": 622070,
+        "4": "XmkV5dv2Xcccf0oiEd-bhFfWv1s",
+        "9": "yautHhWYaXQj6yR0mudPpAhh2GRMlGJ4tsOrYPgRvN4"
+      }
+    }
+  ],
+  "encoding": "ASCII unpadded Base64url",
+  "sanitized": true
+}
