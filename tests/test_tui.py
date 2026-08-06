@@ -105,6 +105,32 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             "com.example.app arm-v7a",
         )
 
+    def test_download_library_reads_apkmirror_artifact_sizes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            output = root / "com-example-app" / "1.0" / "arm64-v8a"
+            output.mkdir(parents=True)
+            (output / "provenance.json").write_text(
+                """{
+                    "package": "com.example.app",
+                    "provider": "apkmirror",
+                    "architecture": "arm64",
+                    "version": {"name": "1.0", "code": "1"},
+                    "files": [{"path": "base.apk"}, {"path": "split.apk"}],
+                    "artifacts": [
+                        {"path": "base.apk", "size": 1024},
+                        {"path": "split.apk", "size": 1024}
+                    ]
+                }""",
+                encoding="utf-8",
+            )
+            app = tui_app()
+            app._download_destination = root
+            record = next(iter(app._scan_download_library().values()))
+
+        self.assertEqual(record["files"], 2)
+        self.assertEqual(record["size"], "2.0 KiB")
+
     async def test_splash_skips_and_sidebar_collapses(self) -> None:
         app = tui_app(Path("morphe.toml"))
         async with app.run_test() as pilot:
