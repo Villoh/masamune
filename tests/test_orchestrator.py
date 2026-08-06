@@ -327,6 +327,7 @@ class BuildOrchestrationTest(unittest.TestCase):
             )
             with (
                 patch("masamune.orchestrator.ensure_user_keystore") as ensure,
+                patch("masamune.orchestrator._local_version_name", return_value="21.04.223"),
                 patch(
                     "masamune.orchestrator.prepare_toolchain",
                     return_value=root / "tools.json",
