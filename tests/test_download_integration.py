@@ -13,6 +13,9 @@ from masamune.orchestrator import (
     _apkmirror_version_code_hint,
     _downloaded_source_directory,
 )
+from masamune.paths import (
+    migrate_legacy_downloads,  # pyright: ignore[reportMissingImports]
+)
 from masamune.tui.workers import run_download_task
 
 
@@ -44,6 +47,21 @@ class DownloadIntegrationTests(unittest.TestCase):
             with patch("masamune.orchestrator.verify_apk_set", return_value=[]):
                 resolved = _downloaded_source_directory(job, root)
         self.assertEqual(resolved, source)
+
+    def test_legacy_downloads_move_under_dedicated_folder(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory) / "masamune"
+            legacy = root / "com-example-app" / "1.2.3" / "arm64-v8a"
+            legacy.mkdir(parents=True)
+            (legacy / "provenance.json").write_text(
+                '{"package": "com.example.app"}', encoding="utf-8"
+            )
+            destination = root / "downloads"
+            self.assertEqual(migrate_legacy_downloads(destination), 1)
+            self.assertFalse((root / "com-example-app").exists())
+            self.assertTrue(
+                (destination / "com-example-app" / "1.2.3" / "arm64-v8a").is_dir()
+            )
 
     def test_automatic_version_code_hint_discovers_apkmirror_catalog(self) -> None:
         with patch(

@@ -59,6 +59,7 @@ from .merge import (
     write_selection_manifest,
 )
 from .module import build_module
+from .paths import default_download_path
 from .providers import (
     ProviderRequest,
     ProviderResult,
@@ -331,13 +332,11 @@ def _downloaded_source_directory(job: Any, root: Path) -> Path | None:
 def _source_directory(job: Any, *, download_root: Path | None = None) -> Path:
     template = job.app.source_dir
     if not template:
-        source = (
-            _downloaded_source_directory(job, download_root)
-            if download_root is not None
-            else None
-        )
-        if source is not None:
-            return source
+        if download_root is not None:
+            for root in (download_root, download_root.parent):
+                source = _downloaded_source_directory(job, root)
+                if source is not None:
+                    return source
         raise BuildError(
             f"local APK directory required for {job.app.package}; "
             "no verified download found"
@@ -402,7 +401,9 @@ def run_build(
             if cancel_event is not None and cancel_event.is_set():
                 raise BuildCancelled("build cancelled by user")
             toolchain = _toolchain(toolchains[app_toolchain(job.app, config.toolchain)])
-            source_version = _local_version_name(job, download_root=args.cache)
+            source_version = _local_version_name(
+                job, download_root=default_download_path()
+            )
             reporter.event(
                 "resolve",
                 "resolving compatible version",
@@ -592,7 +593,9 @@ def _obtain_verified_source(
     reporter: Reporter,
 ) -> tuple[ProviderResult, list[ApkMetadata], str]:
     del trusted
-    source_directory = _source_directory(job, download_root=cache)
+    source_directory = _source_directory(
+        job, download_root=default_download_path()
+    )
     reporter.event(
         "source",
         "verifying local APK set",

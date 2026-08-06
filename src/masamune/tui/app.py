@@ -81,6 +81,7 @@ from ..orchestrator import (  # pyright: ignore[reportMissingImports]
     run_list_patches,
     run_patch_catalog,
 )
+from ..paths import default_download_path, migrate_legacy_downloads
 from ..providers import ProviderRequest
 from .helpers import (
     _BINDINGS,
@@ -94,7 +95,6 @@ from .helpers import (
     _cache_inventory,
     _cell,
     _format_bytes,
-    default_download_path,
     preference_path,
     validate_keybindings,
 )
@@ -508,6 +508,9 @@ class MasamuneApp(App[None]):
         self._render_build_progress()
         self._render_patches([])
         self._load_dashboard()
+        migrated = migrate_legacy_downloads(self._download_destination)
+        if migrated:
+            self._set_status(f"Migrated {migrated} legacy download folder(s)")
         self._render_download_apps()
         self._render_download_destination()
         self._start_cache_inventory()
