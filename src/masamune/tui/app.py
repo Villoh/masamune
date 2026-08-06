@@ -48,7 +48,6 @@ from textual.widgets import (  # pyright: ignore[reportMissingImports]
 )
 from textual.worker import Worker, WorkerState  # pyright: ignore[reportMissingImports]
 
-from ..apk import verify_apk_set
 from ..architecture import Architecture
 from ..cli import (  # pyright: ignore[reportMissingImports]
     __version__,
@@ -67,7 +66,7 @@ from ..config_editor import (  # pyright: ignore[reportMissingImports]
     set_exclusive_patches,
     update_app,
 )
-from ..errors import ApkMismatch, BuildCancelled, IntegrityMetadataError
+from ..errors import BuildCancelled
 from ..logo import LOGO_SMALL_FRAMES, LOGO_SPLASH_FRAMES
 from ..orchestrator import (  # pyright: ignore[reportMissingImports]
     Reporter,
@@ -79,6 +78,7 @@ from ..orchestrator import (  # pyright: ignore[reportMissingImports]
     run_download_versions,
     run_list_patches,
     run_patch_catalog,
+    run_verify,
 )
 from ..paths import default_download_path, migrate_legacy_downloads
 from ..providers import ProviderRequest
@@ -202,6 +202,7 @@ class MasamuneApp(App[None]):
         self._build_worker: Worker[dict[str, object]] | None = None
         self._build_cancel_event = Event()
         self._download_worker: Worker[object] | None = None
+        self._verify_worker: Worker[dict[str, object]] | None = None
         self._download_version_worker: Worker[dict[str, object]] | None = None
         self._download_cancel_event = Event()
         self._download_destination: Path = default_download_path()
@@ -1308,10 +1309,12 @@ class MasamuneApp(App[None]):
                 continue
             if provider == "local" and data.get("schema_version") == 2:
                 provider = "google-play"
-            artifacts = data.get("files", data.get("artifacts", ()))
+            artifacts = data.get("artifacts")
+            if not isinstance(artifacts, list):
+                artifacts = data.get("files", ())
             sizes = (
                 [
-                    item.get("size", 0)
+                    item["size"]
                     for item in artifacts
                     if isinstance(item, dict) and isinstance(item.get("size"), int)
                 ]
@@ -1414,11 +1417,12 @@ class MasamuneApp(App[None]):
             self._set_status("Could not open downloaded folder")
 
     def action_verify_library_download(self) -> None:
+        if self._verify_worker is not None and not self._verify_worker.is_finished:
+            self._set_status("Verification already running")
+            return
         record = self._selected_download_library_record()
         if record is None:
             return
-        self._set_status("Verifying downloaded APK set")
-        self.notify("Verifying downloaded APK set", severity="information")
         path = Path(str(record["path"]))
         try:
             architecture = Architecture.from_goopdl(str(record["architecture"]))
@@ -1427,28 +1431,21 @@ class MasamuneApp(App[None]):
                 for item in self.dashboard_state.apps
                 if item.package == record["package"]
             )
-            verify_apk_set(
-                path,
-                str(record["package"]),
-                version_name=str(record["version"]),
-                version_code=str(record["version_code"]),
-                arch=architecture.goopdl,
-                expected_signer=app.expected_signer,
-            )
-        except (
-            ApkMismatch,
-            IntegrityMetadataError,
-            OSError,
-            ValueError,
-            StopIteration,
-        ) as error:
+        except (ValueError, StopIteration) as error:
             message = f"Download verification failed: {redact(str(error))}"
             self._set_status(message)
             self.notify(message, severity="error")
             return
-        message = f"Verified {record['app']} {record['version']}"
-        self._set_status(message)
-        self.notify(message, severity="information")
+        self._set_status("Verifying downloaded APK set")
+        self.notify("Verifying downloaded APK set", severity="information")
+        self._verify_worker = self.run_verify_worker(
+            path,
+            str(record["package"]),
+            architecture.goopdl,
+            str(record["version"]),
+            str(record["version_code"]),
+            app.expected_signer,
+        )
 
     def action_delete_library_download(self) -> None:
         record = self._selected_download_library_record()
@@ -1774,6 +1771,25 @@ class MasamuneApp(App[None]):
             google_play=app.google_play,
             fallbacks=app.fallbacks,
             provider_name=self._download_provider_name,
+        )
+
+    @work(thread=True, exit_on_error=False, name="verify")
+    def run_verify_worker(
+        self,
+        directory: Path,
+        package: str,
+        arch: str,
+        version_name: str,
+        version_code: str,
+        expected_signer: str | None,
+    ) -> dict[str, object]:
+        return run_verify(
+            directory,
+            package,
+            arch=arch,
+            version_name=version_name,
+            version_code=version_code,
+            expected_signer=expected_signer,
         )
 
     def _record_download_output(self, line: str) -> None:
@@ -2334,6 +2350,32 @@ class MasamuneApp(App[None]):
                     self._set_download_status(
                         f"Download failed: {self._describe(event.worker.error)}"
                     )
+            return
+        if event.worker is self._verify_worker:
+            if event.state is WorkerState.RUNNING:
+                self._set_status("Verifying downloaded APK set")
+            elif event.state is WorkerState.SUCCESS:
+                result = event.worker.result
+                if isinstance(result, Mapping):
+                    version = result.get("version")
+                    version_name = (
+                        version.get("name")
+                        if isinstance(version, Mapping)
+                        else "unknown"
+                    )
+                    self._set_status(f"Verified {result.get('package')} {version_name}")
+                    self.notify(
+                        f"Verified {result.get('package')} {version_name}",
+                        severity="information",
+                    )
+                else:
+                    self._set_status("Download verification returned invalid result")
+            elif event.state is WorkerState.ERROR:
+                message = (
+                    f"Download verification failed: {redact(str(event.worker.error))}"
+                )
+                self._set_status(message)
+                self.notify(message, severity="error")
             return
         if event.worker is self._community_worker:
             if event.state is WorkerState.RUNNING:

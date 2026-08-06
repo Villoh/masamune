@@ -774,6 +774,7 @@ def run_verify(
     arch: str,
     version_name: str | None = None,
     version_code: str | None = None,
+    expected_signer: str | None = None,
 ) -> dict[str, object]:
     metadata = verify_apk_set(
         directory,
@@ -781,6 +782,7 @@ def run_verify(
         version_name=version_name,
         version_code=version_code,
         arch=arch,
+        expected_signer=expected_signer,
     )
     base = next(item for item in metadata if item.split_type == "base")
     return {
