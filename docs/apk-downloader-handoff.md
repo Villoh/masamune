@@ -23,6 +23,23 @@ TUI Build action
 
 Build never starts network activity. No merge, patch, or signing happens before artifacts pass verification.
 
+## Moderator constraint
+
+Morphe moderators explicitly allowed a local end-user tool that downloads and patches locally, provided it is not automated like a GitHub build workflow:
+
+> If you want to make a tool to download and patch locally, and it's not automated like for GitHub, and it's intended only for end users, then you could do that.
+
+They also warned that improving Morphe Desktop may eventually make this tool obsolete.
+
+Implementation interpretation:
+
+- Masamune is an interactive end-user TUI.
+- Download starts only after a user action in `Downloads` view.
+- Build never downloads, retries providers, schedules work, or runs unattended.
+- No GitHub/CI/server automation should call the downloader.
+- User manually supplies downloaded APK/splits to the build flow.
+- Keep downloader isolated so Morphe Desktop supersession can be handled or removed later.
+
 ## Current Masamune baseline
 
 Project: `C:/Users/mikel/development/personal/projects/masamune`
