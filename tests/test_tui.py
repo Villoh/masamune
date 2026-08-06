@@ -64,8 +64,9 @@ def content(app, identifier: str) -> str:
 
 
 async def confirm_build(pilot, app, *, accept: bool = True) -> None:
+    await pilot.pause(0.1)
     app.action_start_build()
-    await pilot.pause()
+    await pilot.pause(0.1)
     await pilot.click("#yes" if accept else "#no")
     await pilot.pause()
 
@@ -1294,6 +1295,7 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             app.args.keystore = keystore
             async with app.run_test(size=(140, 40)) as pilot:
                 await pilot.press("x")
+                await pilot.pause(0.1)
                 app.action_show_cache()
                 await pilot.pause()
                 inventory = {row[0]: row for row in rows(app, "#cache-table")}
