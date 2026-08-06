@@ -66,7 +66,10 @@ from .providers import (
     fallback_download,
     providers_for,
 )
-from .providers.apkmirror import resolve_apkmirror_version_code
+from .providers.apkmirror import (
+    resolve_apkmirror_version_code,
+    resolve_apkmirror_version_code_for_package,
+)
 from .providers.errors import ProviderAmbiguous, ProviderUnavailable
 from .providers.google_play import GooglePlayProvider
 from .release_notes import render_release_notes
@@ -980,9 +983,11 @@ def _apkmirror_version_code_hint(
     package: str,
 ) -> str | None:
     try:
-        if not urls:
-            return None
-        return _apkmirror_version_code(urls, version_name=version_name, arch=arch)
+        if urls:
+            return _apkmirror_version_code(urls, version_name=version_name, arch=arch)
+        return resolve_apkmirror_version_code_for_package(
+            package, version_name=version_name, arch=arch
+        )
     except (
         IntegrityMetadataError,
         ProviderAmbiguous,

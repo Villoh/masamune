@@ -6,10 +6,30 @@ from unittest.mock import patch
 
 from masamune.config import load_config
 from masamune.config_editor import update_app
+from masamune.orchestrator import Reporter, _apkmirror_version_code_hint
 from masamune.tui.workers import run_download_task
 
 
 class DownloadIntegrationTests(unittest.TestCase):
+    def test_automatic_version_code_hint_discovers_apkmirror_catalog(self) -> None:
+        with patch(
+            "masamune.orchestrator.resolve_apkmirror_version_code_for_package",
+            return_value="91551240",
+        ) as resolver:
+            code = _apkmirror_version_code_hint(
+                (),
+                version_name="9.15.51",
+                arch="arm64",
+                reporter=Reporter(),
+                package="com.google.android.apps.youtube.music",
+            )
+        self.assertEqual(code, "91551240")
+        resolver.assert_called_once_with(
+            "com.google.android.apps.youtube.music",
+            version_name="9.15.51",
+            arch="arm64",
+        )
+
     def test_download_worker_clears_provider_hooks_on_failure(self) -> None:
         with (
             patch("masamune.tui.workers.set_terminal_owner") as terminal,

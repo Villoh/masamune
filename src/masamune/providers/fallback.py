@@ -57,6 +57,8 @@ def _cached_result(
     if not isinstance(data, dict) or data.get("schema_version") not in (1, 2):
         raise IntegrityMetadataError("trusted output provenance is invalid")
     provider = data.get("provider")
+    if provider == "local" and data.get("schema_version") == 2:
+        provider = "google-play"
     if not isinstance(provider, str) or provider not in {
         item.name for item in providers
     }:
