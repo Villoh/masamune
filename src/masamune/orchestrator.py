@@ -337,9 +337,10 @@ def _source_directory(job: Any, *, download_root: Path | None = None) -> Path:
                 source = _downloaded_source_directory(job, root)
                 if source is not None:
                     return source
+        architecture = Architecture.from_config(job.arch)
         raise BuildError(
-            f"local APK directory required for {job.app.package}; "
-            "no verified download found"
+            f"local APK directory required for {job.app.package} "
+            f"({architecture.value}); no verified download found"
         )
     architecture = Architecture.from_config(job.arch)
     value = template.format(
@@ -597,9 +598,7 @@ def _obtain_verified_source(
     reporter: Reporter,
 ) -> tuple[ProviderResult, list[ApkMetadata], str]:
     del trusted
-    source_directory = _source_directory(
-        job, download_root=default_download_path()
-    )
+    source_directory = _source_directory(job, download_root=default_download_path())
     reporter.event(
         "source",
         "verifying local APK set",
