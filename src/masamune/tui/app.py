@@ -1541,13 +1541,21 @@ class MasamuneApp(App[None]):
         missing = [
             app.package
             for app in self.dashboard_state.apps
-            if app.enabled and not app.source_dir
+            if app.enabled
+            and not app.source_dir
+            and not self._has_verified_download(app.package)
         ]
         if missing:
             self._source_prompt_queue = missing
             self._prompt_local_source()
             return
         self._show_build_confirmation()
+
+    def _has_verified_download(self, package: str) -> bool:
+        return any(
+            record.get("package") == package
+            for record in self._scan_download_library().values()
+        )
 
     def _prompt_local_source(self) -> None:
         if not self._source_prompt_queue:

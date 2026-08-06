@@ -1,16 +1,50 @@
+import json
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Event
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from masamune.config import load_config
 from masamune.config_editor import update_app
-from masamune.orchestrator import Reporter, _apkmirror_version_code_hint
+from masamune.orchestrator import (
+    Reporter,
+    _apkmirror_version_code_hint,
+    _downloaded_source_directory,
+)
 from masamune.tui.workers import run_download_task
 
 
 class DownloadIntegrationTests(unittest.TestCase):
+    def test_build_source_falls_back_to_verified_download(self) -> None:
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "com-example-app" / "1.2.3" / "arm64-v8a"
+            source.mkdir(parents=True)
+            (source / "provenance.json").write_text(
+                json.dumps(
+                    {
+                        "package": "com.example.app",
+                        "version": {"name": "1.2.3", "code": "123"},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            job = SimpleNamespace(
+                arch="arm64-v8a",
+                app=SimpleNamespace(
+                    slug="com-example-app",
+                    package="com.example.app",
+                    version="auto",
+                    source_dir=None,
+                    expected_signer=None,
+                ),
+            )
+            with patch("masamune.orchestrator.verify_apk_set", return_value=[]):
+                resolved = _downloaded_source_directory(job, root)
+        self.assertEqual(resolved, source)
+
     def test_automatic_version_code_hint_discovers_apkmirror_catalog(self) -> None:
         with patch(
             "masamune.orchestrator.resolve_apkmirror_version_code_for_package",
