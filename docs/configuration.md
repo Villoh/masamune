@@ -27,8 +27,8 @@ Supported fallback keys are `apkmirror` and `direct`. Archive/Uptodown fields
 are unsupported. URLs must be HTTPS, without credentials or fragments.
 
 Downloads view requires explicit app, provider, architecture, destination, and
-confirmation. `auto`/`latest` uses latest available stock in Automatic or Google
-Play modes. Destination defaults to `%LOCALAPPDATA%\\masamune` on Windows and can
-be changed or reset. It never changes `source-dir`; user selects downloaded
-folder manually before Build. Google Play secrets stay in goopdl environment
-variables, not TOML.
+confirmation. Downloads resolves Morphe patch-compatible versions and lets user
+choose one manually. Destination defaults to `%LOCALAPPDATA%\\masamune` on
+Windows and can be changed or reset. It never changes `source-dir`; user selects
+downloaded folder manually before Build. Google Play secrets stay in goopdl
+environment variables, not TOML.

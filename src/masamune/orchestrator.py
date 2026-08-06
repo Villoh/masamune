@@ -729,6 +729,54 @@ def run_verify(
     }
 
 
+def run_download_versions(
+    config_path: Path, *, cache: Path, package: str
+) -> dict[str, object]:
+    """Resolve Morphe-supported stock versions without downloading stock APKs."""
+    config = load_config(config_path)
+    app = next((item for item in config.apps if item.package == package), None)
+    if app is None:
+        raise BuildError("package is not configured")
+    selection = app_toolchain(app, config.toolchain)
+    prepare_options = (
+        {"patches_sha256": selection.patches_sha256}
+        if selection.patches_sha256 is not None
+        else {}
+    )
+    toolchain_path = prepare_toolchain(
+        cache,
+        {
+            "morphe-cli": selection.morphe_version,
+            "morphe-patches": selection.patches_version,
+        },
+        {
+            "morphe-cli": selection.morphe_source,
+            "morphe-patches": selection.patches_source,
+        },
+        **prepare_options,
+    )
+    toolchain = _toolchain(toolchain_path)
+    compatibility = run_morphe_compatibility(
+        toolchain.java,
+        toolchain.morphe_cli,
+        toolchain.patches,
+        app.package,
+        include=app.include_patches,
+        exclude=app.exclude_patches,
+        exclusive=app.exclusive_patches,
+        requested_version=app.version,
+        include_universal_patches=app_include_universal_patches(app, config.toolchain),
+        include_experimental_versions=app_include_experimental_versions(
+            app, config.toolchain
+        ),
+    )
+    return {
+        "package": package,
+        "versions": list(compatibility.compatible_versions),
+        "selected": compatibility.selected_version,
+    }
+
+
 def run_list_patches(config_path: Path, *, cache: Path) -> dict[str, object]:
     config = load_config(config_path)
     toolchains = _prepare_toolchains(cache, config)

@@ -74,6 +74,7 @@ from ..orchestrator import (  # pyright: ignore[reportMissingImports]
     run_clean,
     run_community_bundles,
     run_download,
+    run_download_versions,
     run_list_patches,
     run_patch_catalog,
 )
@@ -191,9 +192,11 @@ class MasamuneApp(App[None]):
         self._build_worker: Worker[dict[str, object]] | None = None
         self._build_cancel_event = Event()
         self._download_worker: Worker[object] | None = None
+        self._download_version_worker: Worker[dict[str, object]] | None = None
         self._download_cancel_event = Event()
         self._download_destination: Path = default_download_path()
         self._download_provider_name = "automatic"
+        self._download_versions: tuple[str, ...] = ()
         self._download_request: ProviderRequest | None = None
         self._download_app: AppConfig | None = None
         self._download_events: list[str] = []
@@ -393,6 +396,11 @@ class MasamuneApp(App[None]):
                             value="automatic",
                             id="download-provider",
                         )
+                    with Horizontal(id="download-version-actions"):
+                        yield Select(
+                            (), prompt="Resolve patch-compatible versions", id="download-version"
+                        )
+                        yield Button("Resolve versions", id="resolve-download-versions")
                     yield Static(
                         "Destination: default",
                         id="download-destination",
@@ -604,6 +612,7 @@ class MasamuneApp(App[None]):
             "load-bundle": self.action_load_bundle,
             "choose-download-destination": self.action_choose_download_destination,
             "reset-download-destination": self.action_reset_download_destination,
+            "resolve-download-versions": self.action_resolve_download_versions,
             "start-download": self.action_start_download,
             "stop-download": self.action_stop_download,
             "open-download-folder": self.action_open_download_folder,
@@ -618,6 +627,8 @@ class MasamuneApp(App[None]):
             self._render_community_bundles()
 
     def on_select_changed(self, event: Select.Changed) -> None:
+        if event.select.id == "download-app":
+            return
         if event.select.id != "patch-app" or event.value is Select.BLANK:
             return
         value = str(event.value)
@@ -1006,6 +1017,42 @@ class MasamuneApp(App[None]):
         else:
             selector.value = Select.BLANK
 
+    def action_resolve_download_versions(self) -> None:
+        app = self._selected_download_app()
+        if app is None:
+            return
+        if self._download_version_worker is not None and not self._download_version_worker.is_finished:
+            self._set_download_status("Resolving patch-compatible versions")
+            return
+        selector = self.query_one("#download-version", Select)
+        selector.set_options(())
+        selector.value = Select.BLANK
+        self._set_download_status("Resolving patch-compatible versions")
+        self._download_version_worker = self.resolve_download_versions_worker(
+            app.package
+        )
+
+    def _render_download_versions(self, result: Mapping[str, object]) -> None:
+        raw_versions = result.get("versions", ())
+        versions = tuple(
+            str(value)
+            for value in raw_versions
+            if isinstance(value, str)
+        ) if isinstance(raw_versions, (list, tuple)) else ()
+        self._download_versions = versions
+        selector = self.query_one("#download-version", Select)
+        selector.set_options((version, version) for version in versions)
+        selected = result.get("selected")
+        if isinstance(selected, str) and selected in versions:
+            selector.value = selected
+        elif versions:
+            selector.value = versions[0]
+        self._set_download_status(
+            f"{len(versions)} patch-compatible version(s) available"
+            if versions
+            else "No patch-compatible versions found"
+        )
+
     def _render_download_destination(self) -> None:
         self.query_one("#download-destination", Static).update(
             f"Destination: {redact(str(self._download_destination))}"
@@ -1048,14 +1095,13 @@ class MasamuneApp(App[None]):
         if app is None:
             return
         provider_name = str(self.query_one("#download-provider", Select).value)
-        requested_version = None if app.version in {"auto", "latest"} else app.version
-        if provider_name == "apkmirror" and requested_version is None:
-            self._set_download_status(
-                "APKMirror needs explicit version; use Automatic for latest"
-            )
+        selected_version = self.query_one("#download-version", Select).value
+        if selected_version is Select.BLANK:
+            self._set_download_status("Resolve and select a patch-compatible version first")
             return
-        version_path = Path(requested_version or "latest")
-        if version_path.name != (requested_version or "latest") or requested_version in {".", ".."}:
+        requested_version = str(selected_version)
+        version_path = Path(requested_version)
+        if version_path.name != requested_version or requested_version in {".", ".."}:
             self._set_download_status("Version is not a safe download path")
             return
         architecture = Architecture.from_config(
@@ -1385,6 +1431,13 @@ class MasamuneApp(App[None]):
             uses_template_keystore=self._uses_template_keystore(),
             output_sink=self._record_subprocess_output,
         )
+
+    @work(thread=True, exit_on_error=False, name="download-versions")
+    def resolve_download_versions_worker(self, package: str) -> dict[str, object]:
+        config_path = self.dashboard_state.config_path
+        if config_path is None:
+            raise RuntimeError("configuration is not loaded")
+        return run_download_versions(config_path, cache=self.args.cache, package=package)
 
     @work(thread=True, exit_on_error=False, name="download")
     def run_download_worker(self) -> object:
@@ -1925,6 +1978,20 @@ class MasamuneApp(App[None]):
                     self._record_build_history("FAILED")
                 if self.query_one("#content", ContentSwitcher).current == "builds":
                     self._render_build_history()
+            return
+        if event.worker is self._download_version_worker:
+            if event.state is WorkerState.RUNNING:
+                self._set_download_status("Resolving patch-compatible versions")
+            elif event.state is WorkerState.SUCCESS:
+                result = event.worker.result
+                if isinstance(result, Mapping):
+                    self._render_download_versions(result)
+                else:
+                    self._set_download_status("Version resolution returned invalid data")
+            elif event.state is WorkerState.ERROR:
+                self._set_download_status(
+                    f"Version resolution failed: {self._describe(event.worker.error)}"
+                )
             return
         if event.worker is self._download_worker:
             if event.state is WorkerState.RUNNING:

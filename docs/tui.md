@@ -62,14 +62,16 @@ variables; TUI never displays secrets. Direct URLs are explicit HTTPS inputs and
 show their host before confirmation.
 
 Destination defaults to `%LOCALAPPDATA%\\masamune` on Windows. Choose another
-folder or reset default at any time. `auto`/`latest` app versions use latest
-available stock in Automatic and Google Play modes.
+folder or reset default at any time. Resolve versions from Morphe patch
+compatibility, then choose one manually; the selected version is passed to the
+provider.
 
 1. Open Downloads (`3`).
-2. Select configured app, provider, architecture, and destination folder.
-3. Confirm download. Only this action starts network activity.
-4. Masamune verifies package, version, splits, ABI, signer, hashes, and provenance.
-5. Select the resulting folder manually in Build. Download never changes
+2. Select configured app, then press `Resolve versions`.
+3. Choose provider, compatible version, architecture, and destination folder.
+4. Confirm download. Stock download starts only after confirmation.
+5. Masamune verifies package, version, splits, ABI, signer, hashes, and provenance.
+6. Select the resulting folder manually in Build. Download never changes
    `source-dir` and never starts a build.
 
 ## Build flow

@@ -265,6 +265,7 @@ ToastRack {
 }
 
 #download-actions,
+#download-version-actions,
 #download-buttons {
     height: auto;
     min-height: 3;
@@ -272,11 +273,14 @@ ToastRack {
 }
 
 #download-app,
-#download-arch {
+#download-arch,
+#download-provider,
+#download-version {
     width: 1fr;
     margin-right: 1;
 }
 
+#download-version-actions Button,
 #download-buttons Button {
     margin-right: 1;
 }
@@ -294,6 +298,7 @@ ToastRack {
 }
 
 .bundle-narrow #bundle-source-actions,
+.bundle-narrow #download-version-actions,
 .bundle-narrow #download-buttons {
     layout: vertical;
     height: auto;

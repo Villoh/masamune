@@ -168,8 +168,11 @@ are never displayed or stored by TUI.
 Downloads require an explicit action in Downloads (`3`). User can choose
 Automatic (Google Play → APKMirror → Direct), Google Play, APKMirror, or Direct.
 Destination defaults to `%LOCALAPPDATA%\\masamune` on Windows and can be changed
-or reset. Credentials come from goopdl environment variables and never appear
-in TUI, logs, or provenance. Every result is independently verified before
+or reset. Downloads view resolves versions from Morphe patch compatibility and
+lets user choose any supported version manually. Credentials come from goopdl
+environment variables and never appear
+in TUI, logs, or provenance. Press `Resolve versions` to query Morphe patch
+compatibility, then choose a supported version manually. Every result is independently verified before
 atomic publication. Select its folder manually in Build afterward; `source-dir`
 is never changed automatically.
 
