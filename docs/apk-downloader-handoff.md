@@ -9,14 +9,19 @@ Morphe team gave permission for this feature. Masamune must keep local APK input
 Target flow:
 
 ```text
-TUI build/download action
-  ├─ local source selected → existing local verification path
-  └─ download selected → provider chain → atomic trusted cache
-                                      → same verification
-                                      → existing merge/patch/sign flow
+TUI Downloads action
+  → user chooses destination folder
+  → provider chain → atomic verified download
+  → user manually selects downloaded folder as source
+  → existing build flow
+
+TUI Build action
+  → user manually provides/selects local APK or split folder
+  → existing local verification
+  → merge → patch → sign
 ```
 
-No merge, patch, or signing happens before downloaded artifacts pass verification.
+Build never starts network activity. No merge, patch, or signing happens before artifacts pass verification.
 
 ## Current Masamune baseline
 
@@ -25,10 +30,10 @@ Project: `C:/Users/mikel/development/personal/projects/masamune`
 Important existing seams:
 
 - `src/masamune/orchestrator.py`
-  - `_obtain_verified_source()` is currently local-only.
+  - `_obtain_verified_source()` is currently local-only and must stay local-only.
   - `_build_job()` already consumes `(ProviderResult, metadata, version_code)`.
-  - `Reporter.event()` already supports redacted structured download events.
-  - `trusted = cache / "trusted" / slug / architecture / version_name` is already passed into source acquisition.
+  - `Reporter.event()` already supports redacted structured events.
+  - A standalone `run_download()` should write verified results to a user-selected destination; do not make `_build_job()` call providers.
 - `src/masamune/apk.py`
   - Existing package/version/ABI/split/signer verification.
   - Existing Google delivery provenance writer can be reused.
@@ -52,7 +57,7 @@ Important existing seams:
   - Build start already prompts for missing local sources.
   - Build worker already reports events and supports cancellation.
 - `src/masamune/tui/workers.py`
-  - Must gain provider terminal ownership/cancellation hooks from Morphe Builder once `goopdl` is added.
+  - Must gain a separate download-worker path with provider terminal ownership/cancellation hooks once `goopdl` is added.
 - `docs/tui.md`
   - Currently says stock APK downloads are unsupported. Update after implementation.
 
@@ -77,16 +82,16 @@ src/morphe_builder/providers/uptodown.py
 
 Adapt package imports from `morphe_builder` to `masamune`.
 
-Also port the relevant old orchestrator code:
+Also port the relevant old orchestrator/provider code into a standalone download operation:
 
 - imports for `confirm_version_code`, `resolve_version_code_candidate`
 - imports for provider contracts and provider implementations
-- `_obtain_verified_source()` remote branch
+- new `run_download()` operation
 - `_apkmirror_version_code()`
 - `_apkmirror_version_code_hint()`
 - `_read_json()` if not already present
 
-Do not copy the old local-source behavior blindly. Masamune must preserve explicit local/download choice.
+Do **not** port the old remote branch into `_obtain_verified_source()` or `_build_job()`. Masamune's build path remains local-only. The downloader prepares artifacts; user manually supplies them to build through the existing native picker.
 
 Port provider tests from:
 
@@ -174,43 +179,47 @@ Never continue to another mirror after an artifact failed verification. Otherwis
 
 ## Orchestrator integration
 
-### 1. Keep local path first
+### 1. Keep build local-only
 
-Refactor `_obtain_verified_source()` to:
+Leave `_obtain_verified_source()` as the build trust boundary:
 
 ```text
 if app.source_dir exists:
     verify existing local APK set
     return ProviderResult("local", ...)
 
-if user explicitly chose local during missing-source prompt:
-    persist source-dir and use current local path
-
-if user explicitly chose download:
-    resolve version code
-    execute provider chain
-    verify trusted result
-    return ProviderResult(provider, trusted_dir, provenance)
+otherwise:
+    raise BuildError("local APK directory required")
 ```
 
-Do not automatically replace a configured `source-dir` with a download.
+The existing missing-source prompt may persist a selected folder to `source-dir`, but it must never call a provider. A build must be reproducible from user-provided local files and must not unexpectedly require network/authentication.
 
-### 2. Download request
+### 2. Add standalone `run_download()`
 
-For each expanded architecture job:
+Create a separate orchestrator operation called only by the Downloads TUI action. It should receive an explicit request:
 
 ```python
 ProviderRequest(
-    package=job.app.package,
+    package=package,
     version_name=version_name,
-    version_code=candidate.version_code if candidate else None,
+    version_code=version_code,
     arch=internal_arch,
-    output=trusted,
-    expected_signer=job.app.expected_signer,
+    output=destination,
+    expected_signer=expected_signer,
 )
 ```
 
-Use `job.app.google_play` and `job.app.fallbacks` to construct providers.
+The operation:
+
+1. resolves version code when Google Play needs it
+2. constructs the fixed provider chain
+3. downloads into a temporary directory
+4. verifies package/version/ABI/splits/signer
+5. writes provenance
+6. atomically publishes into the user-selected destination
+7. returns `ProviderResult` for display only
+
+It must not mutate `source-dir`, build state, or patch state.
 
 ### 3. Version-code resolution
 
@@ -226,74 +235,68 @@ A mirror metadata candidate is only a hint. Cache it only after a real verified 
 
 ARM64 and ARMv7 mappings must remain independent. Never derive version code arithmetically or scan arbitrary code ranges.
 
-### 4. Trusted cache
+### 4. Download destination
 
-Use the existing path:
+Do not hide downloaded APKs in a build-only cache. Require a destination folder from the user via native folder picker, with an optional suggested default such as `downloads/<slug>/<version>/<arch>`.
+
+The final layout may be:
 
 ```text
-<cache>/trusted/<app-slug>/<architecture>/<version-name>/
+<user destination>/<slug>/<version-name>/<architecture>/
+  *.apk
+  provenance.json
 ```
 
-Provider behavior:
-
-- refuse to overwrite existing output
-- download into unique sibling temporary directory
-- verify all files
-- write sanitized `provenance.json`
-- atomically rename temporary directory into trusted path
-- reuse only when provenance identity and file hashes match request
-
-The existing local source provenance format may remain separate from provider provenance. `ProviderResult` lets build output record `provider` consistently.
+The user later selects this folder through `Select split folder` or selects one APK through `Select APK`. If the implementation uses the existing trusted cache internally, it must still provide `Open folder` and require manual source selection before build.
 
 ### 5. Build result
 
-Keep `BuildResult.provider` populated with:
+Build results remain local-source results:
 
 ```text
-local | google-play | direct | archive | apkmirror | uptodown
+local
 ```
 
-Build summary and history should show provider. Do not expose credentials, cookies, dispenser URLs with tokens, or authenticated URLs.
+Downloader results display provider separately in the Downloads view/history. Do not claim a build used `google-play` unless the build actually consumed a manually selected downloaded folder.
 
 ## TUI integration recommendation
 
-### MVP: explicit choice at missing-source prompt
+### MVP: dedicated Downloads view
 
-Reuse `LocalSourceScreen`, expanding it to three actions:
+Do not add download to the missing-source build modal. Keep `LocalSourceScreen` local-only:
 
 ```text
-Select local APK
-Select local split folder
-Download verified stock APKs
+Select APK
+Select split folder
 Cancel
 ```
 
-When download is chosen:
-
-- use current app and selected build version/architecture
-- show provider chain and destination cache
-- start background worker
-- stream sanitized events to Build view
-- do not write `source-dir`
-- build immediately from trusted cache after success
-
-This is smallest safe integration and avoids a second downloader workflow.
-
-### Follow-up: dedicated Downloads view
-
-After MVP works, add a `Downloads` view or command-palette action:
+Add a dedicated `Downloads` view or command-palette action as downloader MVP:
 
 - select configured app
-- show compatible version list
+- select compatible version
 - select architecture
+- select destination folder through native folder picker
 - show provider order
 - show Google auth status without displaying secrets
 - start/cancel download
-- show provenance, provider, version, signer, file count, size, and cache path
-- open trusted cache folder
-- optionally delete one trusted source after confirmation
+- show provenance, provider, version, signer, file count, size, and output folder
+- open output folder
+- never assign output folder to app automatically
+
+After successful download, status must say: `Download verified. Select its folder when configuring the build.`
 
 Suggested new key: `7`. Existing views use keys `1`–`6`.
+
+The build's missing-source modal remains the manual handoff point.
+
+### Download view behavior
+
+- Download selected app/version/architecture.
+- Open destination folder.
+- Delete downloaded source after confirmation.
+- Refresh output/provenance state.
+- Display/copy path for manual source selection.
 
 Do not add credential text fields to the TUI. Read credentials from environment variables used by `goopdl` and show only whether required variables are present.
 
@@ -319,28 +322,25 @@ The downloader must feel like an extension of the current source picker, not a s
 
 ### MVP entry point
 
-When Start build finds an enabled app without `source-dir`, replace the current local-only modal with a source-choice modal:
+When Start build finds an enabled app without `source-dir`, keep the current local-only source modal:
 
 ```text
-┌─ Stock source ───────────────────────────────────────────────┐
+┌─ Local stock source ──────────────────────────────────────────┐
 │ YouTube · com.google.android.youtube                         │
-│ Version: 21.04.223    Architecture: arm64-v8a                │
 │                                                              │
-│ ○ Select APK                                                 │
-│ ○ Select split folder                                        │
-│ ○ Download verified stock APKs                               │
+│ Select one APK or the folder containing all splits.           │
 │                                                              │
-│                                           Cancel             │
+│ Select APK        Select split folder        Cancel           │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 Rules:
 
-- Keep local choices first.
-- Make download an explicit action; never trigger it because `source-dir` is absent.
-- Focus first actionable choice.
-- `Escape` cancels current app source selection and build, matching current behavior.
-- For multiple missing apps, return to this modal for next app only after current source choice succeeds.
+- No download button in build source selection.
+- No network activity from Start build.
+- Focus first local action.
+- `Escape` cancels current app source selection and build.
+- For multiple missing apps, prompt each local source in sequence.
 
 ### Download confirmation modal
 
@@ -353,7 +353,7 @@ Selecting download opens a second modal before network access:
 │ Version   21.04.223                                          │
 │ ABI       arm64-v8a                                           │
 │ Source    Google Play → APKMirror → Uptodown                 │
-│ Cache     <cache>/trusted/youtube/arm64-v8a/21.04.223        │
+│ Destination <user-selected folder>                          │
 │                                                              │
 │ Google Play credentials: available / dispenser / unavailable  │
 │ Fallbacks: configured / none                                 │
@@ -373,16 +373,17 @@ Implementation notes:
 
 ### Download progress
 
-Use current Build view instead of creating a second progress implementation.
+Use Downloads view instead of Build view. Build remains local-only.
 
 On confirmation:
 
 1. Close modal.
-2. Switch to Build view.
+2. Stay in Downloads view.
 3. Set status to `Downloading verified stock`.
-4. Add one job row per app/architecture.
-5. Stream sanitized reporter events into the existing Events panel.
-6. Keep `Stop build` enabled and map it to provider cancellation.
+4. Add one download row per app/architecture.
+5. Stream sanitized reporter events into the Downloads events panel.
+6. Keep `Cancel download` enabled and map it to provider cancellation.
+7. Do not start or mutate a build.
 
 Expected event labels:
 
@@ -398,7 +399,7 @@ Do not show raw `goopdl` output in the alternate-screen TUI. The provider worker
 
 ### Download result modal
 
-After successful download, show a compact result before continuing the build:
+After successful download, show a compact result and return to Downloads view:
 
 ```text
 ┌─ Stock APK verified ─────────────────────────────────────────┐
@@ -407,17 +408,18 @@ After successful download, show a compact result before continuing the build:
 │ Architecture   arm64-v8a                                   │
 │ Files          8                                            │
 │ Signer         <short SHA-256 fingerprint>                 │
-│ Cache          trusted/youtube/arm64-v8a/21.04.223          │
+│ Folder         <user-selected destination>                  │
 │                                                              │
-│ Verified source will be used for this build.                │
-│                                      Continue                │
+│ Download verified. Select its folder when configuring build. │
+│                                      Close                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- Never require user to manually copy a cache path into `source-dir`.
-- Do not persist `source-dir` for a downloaded source in MVP.
-- Build continues using the trusted `ProviderResult` path in memory/cache.
-- Full fingerprint remains available in provenance and build result; UI may shorten it for readability.
+- Do not write or mutate `source-dir` after download.
+- Do not start a build automatically.
+- `Select APK` / `Select split folder` remains the only build handoff.
+- Offer `Open folder` and display the folder path so user can provide it manually.
+- Full fingerprint remains available in provenance; UI may shorten it for readability.
 
 ### Failure states
 
@@ -428,14 +430,14 @@ Use distinct user-facing messages:
 | Provider unavailable | Show provider and reason; chain may continue internally. |
 | Version unavailable | Show all attempted providers and requested version; no retry loop. |
 | Integrity failure | Red/error state; stop chain; tell user trusted output was not published. |
-| Cancelled | Return to Build view with `Download cancelled`; leave no partial trusted output. |
-| Cached verified source | Show `Reusing verified stock cache` and continue without network. |
+| Cancelled | Return to Downloads view with `Download cancelled`; leave no partial published output. |
+| Already verified destination | Show `Verified download already exists`; let user open it or select it manually for a build. |
 
 Do not expose traceback, cookies, signed URLs, HTTP authorization headers, or raw provider HTML in modal text. Keep detailed sanitized diagnostics in build log.
 
-### Future Downloads view
+### Downloads view layout
 
-Only add after MVP proves stable. Add view key `7` and command-palette entry `downloads`.
+Add view key `7` and command-palette entry `downloads`.
 
 Layout:
 
@@ -453,9 +455,10 @@ Layout:
 Context actions:
 
 - Download selected.
-- Open trusted cache folder.
+- Open destination folder.
 - Delete selected verified source after confirmation.
-- Refresh cache/provenance state.
+- Refresh download/provenance state.
+- Display/copy path for manual source selection.
 
 Keep provider configuration in App Editor/advanced config, not in this table. Keep downloads view focused on artifacts and state.
 
@@ -478,14 +481,14 @@ from contextlib import nullcontext
 from ..providers.google_play import set_build_cancel_event, set_terminal_owner
 ```
 
-Worker must:
+Download worker must:
 
 1. call `set_terminal_owner(...)` so `goopdl` cannot corrupt Textual alternate-screen output
 2. call `set_build_cancel_event(cancel_event)`
 3. clear both hooks in `finally`
-4. keep current Masamune template-keystore behavior
+4. keep current Masamune cancellation behavior
 
-Current Masamune worker passes `cancel_event` into the runner. Preserve that behavior while adding provider hooks.
+Keep provider hooks scoped to the standalone download worker. Build worker must remain network-free.
 
 ## Security requirements
 
@@ -521,7 +524,9 @@ docs/google-play-integrity.md # port/adapt downloader verification docs
 Replace current statement that Masamune does not download stock APKs with explicit behavior:
 
 - local APKs remain supported
-- downloads are user-triggered
+- downloads are user-triggered from Downloads view only
+- Start build never downloads or uses providers
+- user manually selects downloaded folder before build
 - Google Play is preferred
 - fallbacks are optional and fixed-order
 - all remote artifacts receive identical independent verification
@@ -547,10 +552,12 @@ uv run masamune --help
 
 Add smallest Masamune-specific tests for:
 
-- local source remains preferred when configured
-- remote provider is used when user selects download
-- missing source choice is explicit
-- trusted cache is reused only with matching provenance
+- configured/local source remains the only build input
+- Downloads action is explicit and separate from Build
+- Start build never invokes provider or network code
+- downloaded folder is never assigned automatically
+- missing source choice is explicit and local-only
+- downloaded output is reused only with matching provenance
 - provider result version is independently checked
 - provider/integrity failures map to correct fallback behavior
 - TUI worker clears subprocess hooks after success/failure/cancel
@@ -562,24 +569,25 @@ Live Google Play tests remain opt-in and must use external auth. Never commit AP
 
 1. Copy/adapt provider package and provider tests.
 2. Add `goopdl==1.2.0`; regenerate `uv.lock`.
-3. Port orchestrator provider imports and verified remote source branch.
+3. Add standalone `run_download()`; do not alter build source acquisition to download.
 4. Add APKMirror version-code hint helper.
-5. Merge provider cancellation/terminal hooks into `tui/workers.py`.
-6. Expand `LocalSourceScreen` with explicit download action.
-7. Thread selected source mode through build start and `_obtain_verified_source()`.
+5. Add download worker with provider cancellation/terminal hooks.
+6. Add dedicated Downloads view and native destination-folder picker.
+7. Keep `LocalSourceScreen` local-only; require manual source selection after download.
 8. Add config editor fields for provider settings.
-9. Update cache inventory/cleanup labels for trusted downloaded stock.
+9. Update cache/download inventory labels.
 10. Update docs and README.
-11. Run tests, build, lock check, and a local TUI smoke test.
-12. Only then consider dedicated Downloads view.
+11. Run tests, build, lock check, and local TUI smoke test.
 
 ## Definition of done
 
 - User can build from local APKs exactly as before.
-- User can explicitly choose verified download from TUI.
+- User can explicitly download verified APKs from separate Downloads view.
+- Start build never invokes download/network/provider code.
+- User manually selects downloaded APK/split folder for build.
 - Google Play and configured fallback providers work through one fixed chain.
-- Downloaded APK sets are independently verified before merge/patch/sign.
-- Trusted cache and provenance survive TUI restart.
+- Downloaded APK sets are independently verified before publication.
+- Download provenance survives TUI restart.
 - Cancel, network failure, version unavailable, and integrity failure behave distinctly.
 - No secrets leak to UI, logs, provenance, Git, or package artifacts.
 - Unit tests, lock check, package build, and CLI help pass.
