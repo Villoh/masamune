@@ -60,15 +60,15 @@ Important existing seams:
   - Already contains `resolve_google_version()` and `resolve_google_versions()` hooks for fallback metadata/download.
 - `src/masamune/config.py`
   - Already has `GooglePlayConfig`.
-  - Already has `FallbackConfig` with `direct`, `archive`, `apkmirror`, `uptodown`.
+  - Already has provider config scaffolding; reduce it to `direct` and `apkmirror` fallbacks.
   - Already validates `[apps.google-play]` and `[apps.fallbacks]` URLs.
   - `source-dir` remains optional.
 - `src/masamune/config_editor.py`
   - Already supports fallback fields internally:
     - `fallback-direct`
-    - `fallback-archive`
     - `fallback-apkmirror`
-    - `fallback-uptodown`
+
+  Remove archive/Uptodown fields from the downloader design.
   - `AppEditorScreen` does not expose these fields yet.
 - `src/masamune/tui/app.py`
   - Build start already prompts for missing local sources.
@@ -94,7 +94,8 @@ src/morphe_builder/providers/fallback.py
 src/morphe_builder/providers/google_play.py
 src/morphe_builder/providers/urls.py
 src/morphe_builder/providers/apkmirror.py
-src/morphe_builder/providers/uptodown.py
+
+`urls.py` can supply the direct URL provider. Do not port `uptodown.py`.
 ```
 
 Adapt package imports from `morphe_builder` to `masamune`.
@@ -137,21 +138,21 @@ uv lock --check
 
 ## Provider model
 
-Use fixed provider order. Do not make order user-configurable in MVP:
+Use only three providers:
 
 ```text
-google-play → direct → archive → apkmirror → uptodown
+google-play → apkmirror → direct
 ```
 
-Only configured fallback entries are attempted.
+The order is fixed in automatic mode. Only configured fallback entries are attempted.
+
+`direct` is user responsibility: it accepts explicit HTTPS APK/asset URLs only. Masamune does not discover or endorse that host. It still verifies the downloaded artifact independently before publication. The confirmation modal must show the direct host and require the user to acknowledge it before download.
 
 | Provider | Input | Purpose |
 |---|---|---|
 | `google-play` | `goopdl`, account/dispenser config | Preferred official delivery; split-aware and manifest-verified. |
-| `direct` | Explicit HTTPS APK URLs | Stable self-hosted or known asset URLs. |
-| `archive` | Explicit `archive.org/download/...` URLs | Historical APKs no longer served by Google Play. |
-| `apkmirror` | APK URL or catalog URL | Resolves catalog → release → ABI variant → asset. Supports `.apkm`. |
-| `uptodown` | APK URL or catalog URL | Resolves catalog → version → ABI variant → asset. Supports `.xapk`. |
+| `apkmirror` | APK URL or catalog URL | Only supported catalog fallback; resolves catalog → release → ABI variant → asset. Supports `.apkm`. |
+| `direct` | Explicit HTTPS APK URLs | User-selected/self-hosted source. No catalog scraping or host discovery. |
 
 Provider contract:
 
@@ -187,7 +188,7 @@ Integrity failures are terminal:
 - version name/code mismatch
 - wrong ABI or split set
 - signer mismatch
-- unsafe archive path
+- unsafe APK/APKM archive path
 - unsafe redirect/host
 - size/file-count violations
 - invalid provenance
@@ -294,7 +295,7 @@ Add a dedicated `Downloads` view or command-palette action as downloader MVP:
 - select compatible version
 - select architecture
 - select destination folder through native folder picker
-- show provider order
+- show provider order (`Google Play → APKMirror → Direct`)
 - show Google auth status without displaying secrets
 - start/cancel download
 - show provenance, provider, version, signer, file count, size, and output folder
@@ -319,6 +320,8 @@ Do not add credential text fields to the TUI. Read credentials from environment 
 
 ### App editor
 
+When implementing provider config, remove the existing unused `archive` and `uptodown` schema/editor fields rather than exposing them. Keep only Google Play, APKMirror, and Direct.
+
 Expose advanced provider fields in `AppEditorScreen` only after core flow works:
 
 - Google Play profile
@@ -326,9 +329,8 @@ Expose advanced provider fields in `AppEditorScreen` only after core flow works:
 - proxy
 - dispenser URL
 - direct fallback URLs
-- archive URLs
 - APKMirror catalog/asset URLs
-- Uptodown catalog/asset URLs
+- Direct APK URLs (explicit user responsibility)
 - expected signer
 
 Use comma-separated URLs in UI, preserving current `config_editor.py` round-trip behavior. Keep secrets out of TOML and logs.
@@ -369,7 +371,7 @@ Selecting download opens a second modal before network access:
 │ Package   com.google.android.youtube                         │
 │ Version   21.04.223                                          │
 │ ABI       arm64-v8a                                           │
-│ Source    Google Play → APKMirror → Uptodown                 │
+│ Source    Google Play → APKMirror → Direct                  │
 │ Destination <user-selected folder>                          │
 │                                                              │
 │ Google Play credentials: available / dispenser / unavailable  │
@@ -515,7 +517,7 @@ Must remain true:
 - No credential-bearing URLs.
 - No URL fragments.
 - Provider host allowlists enforced on catalog pages and redirects.
-- APK/APKM/XAPK archive paths reject absolute paths, `..`, backslashes, duplicate names, excessive files, and excessive total size.
+- APK/APKM archive paths reject absolute paths, `..`, backslashes, duplicate names, excessive files, and excessive total size.
 - Downloaded files go to temporary directories, never directly into trusted cache.
 - Verify package, version name, version code, ABI, split requirements, signer, hashes, and file coverage from bytes.
 - Preserve original downloaded split APKs unchanged.
