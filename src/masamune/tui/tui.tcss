@@ -151,11 +151,25 @@ ToastRack {
 
 #app-actions,
 #patch-actions,
-#bundle-source-actions,
 #bundle-search-actions,
 .modal-actions {
     height: 3;
     width: 1fr;
+}
+
+#bundle-source-actions {
+    height: auto;
+    width: 1fr;
+}
+
+#bundle-source-fields,
+#bundle-source-buttons {
+    height: 3;
+    width: 1fr;
+}
+
+#bundle-source-buttons {
+    margin-top: 1;
 }
 
 .modal-actions {
@@ -164,7 +178,7 @@ ToastRack {
 
 #app-actions Button,
 #patch-actions Button,
-#bundle-source-actions Button,
+#bundle-source-buttons Button,
 .modal-actions Button {
     margin-right: 1;
 }
@@ -188,7 +202,6 @@ ToastRack {
     margin-right: 1;
 }
 
-#bundle-source-actions,
 #bundle-search-actions {
     height: auto;
     min-height: 3;
@@ -347,10 +360,14 @@ ToastRack {
     min-height: 8;
 }
 
-.bundle-narrow #bundle-source-actions,
+.bundle-narrow #bundle-source-fields,
+.bundle-narrow #bundle-source-buttons,
+.bundle-narrow #app-actions,
+.bundle-narrow #patch-actions,
 .bundle-narrow #download-actions,
 .bundle-narrow #download-version-actions,
-.bundle-narrow #download-buttons {
+.bundle-narrow #download-buttons,
+.bundle-narrow #download-library-actions {
     layout: vertical;
     height: auto;
 }
@@ -362,11 +379,15 @@ ToastRack {
     margin-bottom: 1;
 }
 
-.bundle-narrow #bundle-source-actions Button,
+.bundle-narrow #bundle-source-buttons Button,
+.bundle-narrow #app-actions Button,
+.bundle-narrow #patch-actions Select,
+.bundle-narrow #patch-actions Button,
 .bundle-narrow #download-actions Select,
 .bundle-narrow #download-version-actions Select,
 .bundle-narrow #download-version-actions Button,
-.bundle-narrow #download-buttons Button {
+.bundle-narrow #download-buttons Button,
+.bundle-narrow #download-library-actions Button {
     width: 1fr;
     margin-right: 0;
     margin-bottom: 1;
