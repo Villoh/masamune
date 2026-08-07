@@ -10,6 +10,7 @@
 
 [GitHub](https://github.com/Villoh/masamune) | [Releases](https://github.com/Villoh/masamune/releases) | [Issues](https://github.com/Villoh/masamune/issues)
 
+[![PyPI](https://img.shields.io/pypi/v/masamune-tui?style=for-the-badge&label=PyPI&labelColor=000000)](https://pypi.org/project/masamune-tui/)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-FFFFFF?style=for-the-badge&labelColor=000000&logo=python&logoColor=white)](https://www.python.org/)
 [![Java](https://img.shields.io/badge/java-21%2B-FFFFFF?style=for-the-badge&labelColor=000000&logo=openjdk&logoColor=white)](https://openjdk.org/)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json&style=for-the-badge&label=managed%20with&labelColor=000000&color=261230)](https://docs.astral.sh/uv/)
