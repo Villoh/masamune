@@ -6,7 +6,7 @@
 
 # Masamune
 
-**Local, verified Morphe APK builds configured and monitored from a terminal UI.**
+**Local, verified [Morphe](https://github.com/MorpheApp/) APK builds configured and monitored from a terminal UI.**
 
 [GitHub](https://github.com/Villoh/masamune) | [Releases](https://github.com/Villoh/masamune/releases) | [Issues](https://github.com/Villoh/masamune/issues)
 
@@ -19,10 +19,10 @@
 
 ---
 
-Masamune is a Textual terminal interface for building Morphe APKs from
+Masamune is a Textual terminal interface for building [Morphe](https://github.com/MorpheApp/) APKs from
 local APK/split inputs or verified stock downloads.
 
-It verifies inputs, merges splits, resolves Morphe tooling, applies patches,
+It verifies inputs, merges splits, resolves [Morphe](https://github.com/MorpheApp/) tooling, applies patches,
 signs outputs, and optionally packages modules. Downloads are explicit; Start
 build never performs network activity.
 
@@ -37,10 +37,10 @@ build never performs network activity.
 | Requirement | Version | Notes |
 | --- | --- | --- |
 | [`Python`](https://www.python.org/) | 3.11–3.13 | Runtime and development support. |
-| [`Java`](https://openjdk.org/) | 21+ | Required by Morphe CLI, APKEditor, and uber-apk-signer. |
+| [`Java`](https://openjdk.org/) | 21+ | Required by [Morphe CLI](https://github.com/MorpheApp/), APKEditor, and uber-apk-signer. |
 | [`uv`](https://docs.astral.sh/uv/) | latest | Recommended for installation and development. |
 
-Windows and Linux are supported. Morphe CLI, patch bundles, APKEditor, and
+Windows and Linux are supported. [Morphe CLI](https://github.com/MorpheApp/), patch bundles, APKEditor, and
 uber-apk-signer are prepared in the user cache when a build starts.
 
 ## Features
@@ -52,7 +52,7 @@ uber-apk-signer are prepared in the user cache when a build starts.
   split coverage, hashes, and signing certificates are checked before use.
 - **Config-driven builds**: apps, architectures, versions, patch sources, and
   build modes live in `morphe.toml`.
-- **Morphe patch workflow**: discover patches, select exact patch sets, and edit
+- **[Morphe patch workflow](https://github.com/MorpheApp/)**: discover patches, select exact patch sets, and edit
   configurable patch options.
 - **APK and module output**: build patched APKs plus optional deterministic
   Magisk/KernelSU modules.
@@ -169,12 +169,12 @@ are never displayed or stored by TUI.
 Downloads require an explicit action in Downloads (`3`). User can choose
 Automatic (Google Play → APKMirror → Direct), Google Play, APKMirror, or Direct.
 Destination is fixed at `%LOCALAPPDATA%\\masamune\\downloads` on Windows
-(and the platform data equivalent). Downloads view resolves versions from Morphe
+(and the platform data equivalent). Downloads view resolves versions from [Morphe](https://github.com/MorpheApp/)
 patch compatibility and lets the user choose any supported version manually.
 The Downloaded view lists verified APK/split sets and supports opening, verifying,
 and deleting them. Credentials come from goopdl
 environment variables and never appear
-in TUI, logs, or provenance. Press `Resolve versions` to query Morphe patch
+in TUI, logs, or provenance. Press `Resolve versions` to query [Morphe](https://github.com/MorpheApp/) patch
 compatibility, then choose a supported version manually. Every result is independently
 verified before atomic publication. Builds can use matching downloaded sources
 automatically when `source-dir` is not configured; configuration is never changed
@@ -186,7 +186,7 @@ implicitly.
 2. Configure `source-dir`, or download a verified stock APK/split set.
 3. Review source, version, architecture, patches, output, and signing key.
 4. Confirm the build.
-5. TUI verifies inputs, merges splits, applies Morphe patches, signs outputs,
+5. TUI verifies inputs, merges splits, applies [Morphe](https://github.com/MorpheApp/) patches, signs outputs,
    and publishes verified artifacts atomically.
 
 Build view reports:
@@ -211,7 +211,7 @@ existing app without replacing unrelated configuration.
 an exact selection. Configurable patches expose boolean, numeric, and free-text
 options with upstream defaults and suggestions.
 
-Patch resolution may download Morphe metadata and toolchains into the external
+Patch resolution may download [Morphe](https://github.com/MorpheApp/) metadata and toolchains into the external
 cache. It never downloads stock APKs.
 
 ## Safety model
