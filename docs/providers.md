@@ -8,7 +8,7 @@ User can select one provider or Automatic. Automatic uses:
 Google Play → APKMirror → Direct
 ```
 
-Google Play uses `goopdl==1.2.0` through `python -m goopdl`. Direct accepts
+Google Play uses `goopdl==1.2.1` through `python -m goopdl`. Direct accepts
 explicit HTTPS APK URLs only; Masamune does not discover hosts. APKMirror accepts
 optional catalog or asset URLs; when none are configured, it discovers the
 catalog from the Android package, then resolves release, architecture, and APKM

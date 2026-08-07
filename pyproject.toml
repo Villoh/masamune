@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
   "axml==0.0.2",
-  "goopdl==1.2.0",
+  "goopdl==1.2.1",
   "rich>=13",
   "textual==6.6.0",
   "tomlkit==0.13.2",

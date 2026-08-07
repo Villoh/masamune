@@ -2,6 +2,7 @@ import argparse
 import io
 import json
 import os
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stderr
@@ -34,7 +35,7 @@ from masamune.providers import (
     ProviderUnavailable,
     VersionUnavailable,
 )
-from masamune.providers.google_play import GooglePlayProvider
+from masamune.providers.google_play import GooglePlayProvider, run_goopdl
 from masamune.toolchain import PreparedToolchain
 
 
@@ -742,6 +743,18 @@ class OrchestratorUxTest(unittest.TestCase):
                 provider.download(request)
             self.assertEqual(os.environ["HTTPS_PROXY"], "https://old.invalid")
             self.assertNotIn("HTTP_PROXY", os.environ)
+
+    def test_google_provider_translates_rate_limit(self) -> None:
+        with (
+            patch(
+                "masamune.providers.google_play.subprocess.run",
+                side_effect=subprocess.CalledProcessError(5, ["goopdl"]),
+            ),
+            self.assertRaisesRegex(
+                ProviderUnavailable, r"delivery rate limited \(HTTP 429\)"
+            ),
+        ):
+            run_goopdl(["goopdl"])
 
     def test_google_provider_translates_missing_version(self) -> None:
         request = ProviderRequest("com.example.app", "1", "1", "arm64", Path("trusted"))

@@ -64,7 +64,7 @@ wheels = [
 
 [[package]]
 name = "goopdl"
-version = "1.2.0"
+version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -72,9 +72,9 @@ dependencies = [
     { name = "typer" },
     { name = "websocket-client" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/9f/86a726afe0d4341e0e1e2bedaff0fcb76c95835466ea1ec1dc1c13fe360b/goopdl-1.2.0.tar.gz", hash = "sha256:b314a0cc71ec2c3a3f0b331e1c74a59f00cd90f06a18796e2193e54900458224", size = 96186, upload-time = "2026-08-03T13:16:23.228Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/26/1945cf177195b670ab21a277c656b1773f9f1048f3895dd398341ead1b05/goopdl-1.2.1.tar.gz", hash = "sha256:5268b0e1af32c53b27df89f03df296ad57ba52608275c85baece451c3c4ed42b", size = 98702, upload-time = "2026-08-07T06:39:10.546Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/61/d581c0220b9183c4eba229514e2c803ac3abd9e7a9371a5a6567b20a347c/goopdl-1.2.0-py3-none-any.whl", hash = "sha256:c71601b367f056ef8fc7c5d9b1b76d8da13f605a105d09fba4d6acf65f3c2f60", size = 141756, upload-time = "2026-08-03T13:16:21.729Z" },
+    { url = "https://files.pythonhosted.org/packages/09/b1/5ea32b2f5a84e32816624e6b1ed6d441ddcf3f609ecc925c6719e1c88561/goopdl-1.2.1-py3-none-any.whl", hash = "sha256:dc5e6382dc38b35d91fb8bdc8808385651a2403b8aaa0b6f0d7661fd80b0d4bf", size = 142887, upload-time = "2026-08-07T06:39:09.38Z" },
 ]
 
 [[package]]
@@ -233,7 +233,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "axml", specifier = "==0.0.2" },
-    { name = "goopdl", specifier = "==1.2.0" },
+    { name = "goopdl", specifier = "==1.2.1" },
     { name = "rich", specifier = ">=13" },
     { name = "textual", specifier = "==6.6.0" },
     { name = "tomlkit", specifier = "==0.13.2" },

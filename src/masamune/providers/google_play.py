@@ -32,6 +32,7 @@ from .errors import ProviderArtifactMismatch, ProviderUnavailable, VersionUnavai
 
 AUTH_UNAVAILABLE_EXIT_CODE = 3
 VERSION_UNAVAILABLE_EXIT_CODE = 4
+RATE_LIMIT_EXIT_CODE = 5
 
 _terminal_owner: Callable[[], AbstractContextManager[None]] | None = None
 _terminal_output: Callable[[str], None] | None = None
@@ -139,6 +140,10 @@ def run_goopdl(command: list[str]) -> None:
         if error.returncode == VERSION_UNAVAILABLE_EXIT_CODE:
             raise GooglePlayVersionUnavailable(
                 "Google Play version is unavailable"
+            ) from None
+        if error.returncode == RATE_LIMIT_EXIT_CODE:
+            raise ProviderUnavailable(
+                "Google Play delivery rate limited (HTTP 429)"
             ) from None
         raise IntegrityMetadataError(
             f"goopdl command failed (exit code {error.returncode})"
