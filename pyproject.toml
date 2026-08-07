@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "masamune-tui"
-version = "1.0.1"
+version = "1.1.0"
 description = "Masamune terminal UI for building Morphe artifacts from local APKs"
 readme = "README.md"
 license = "MIT"
