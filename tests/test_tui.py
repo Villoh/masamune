@@ -256,6 +256,18 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(container.styles.align_horizontal, "left")
             self.assertEqual(app.query_one("#add-app").region.x, container.region.x)
 
+    async def test_bundle_source_buttons_render_below_inputs(self) -> None:
+        app = tui_app(Path("morphe.toml"))
+        async with app.run_test(size=(120, 35)) as pilot:
+            await pilot.press("x")
+            app.show_view("bundles")
+            await pilot.pause()
+            fields = app.query_one("#bundle-source-fields")
+            buttons = app.query_one("#bundle-source-buttons")
+            self.assertLessEqual(fields.region.bottom, buttons.region.y)
+            self.assertEqual(app.query_one("#bundle-source").parent.id, fields.id)
+            self.assertEqual(app.query_one("#load-bundle").parent.id, buttons.id)
+
     async def test_left_click_only_selects_and_enter_opens_context_menu(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config = Path(directory) / "morphe.toml"
@@ -343,6 +355,29 @@ class TuiTest(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(app.has_class("compact-rail"))
             self.assertTrue(app.query_one("#sidebar-rail").display)
             self.assertEqual(app.query_one("#sidebar").outer_size.width, 7)
+
+    async def test_medium_terminal_stacks_download_buttons(self) -> None:
+        app = tui_app(Path("morphe.toml"))
+        async with app.run_test(size=(100, 35)) as pilot:
+            await pilot.press("x")
+            app.show_view("downloads")
+            await pilot.pause()
+            buttons = app.query_one("#download-buttons")
+            self.assertEqual(buttons.styles.layout.name, "vertical")
+            self.assertEqual(
+                len({button.region.x for button in buttons.query("Button")}),
+                1,
+            )
+            for view, identifier in (
+                ("dashboard", "#app-actions"),
+                ("patches", "#patch-actions"),
+                ("download-library", "#download-library-actions"),
+            ):
+                app.show_view(view)
+                await pilot.pause()
+                self.assertEqual(
+                    app.query_one(identifier).styles.layout.name, "vertical"
+                )
 
     async def test_splash_animates_times_out_and_reduced_motion_is_short(self) -> None:
         app = tui_app(Path("morphe.toml"))

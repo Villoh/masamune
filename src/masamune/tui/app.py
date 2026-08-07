@@ -344,24 +344,26 @@ class MasamuneApp(App[None]):
                         markup=False,
                     )
                     yield Static("Custom patch source", classes="section")
-                    with Horizontal(id="bundle-source-actions"):
-                        yield Input(
-                            "MorpheApp/morphe-patches",
-                            placeholder="owner/repository",
-                            id="bundle-source",
-                        )
-                        yield Input(
-                            "latest",
-                            placeholder="latest or tag",
-                            id="bundle-version",
-                        )
-                        yield Button("Load source", id="load-bundle")
-                        yield Button(
-                            "▣ Show apps", id="show-bundle-apps", disabled=True
-                        )
-                        yield Button(
-                            "↻ Refresh", id="refresh-bundles", variant="primary"
-                        )
+                    with Vertical(id="bundle-source-actions"):
+                        with Horizontal(id="bundle-source-fields"):
+                            yield Input(
+                                "MorpheApp/morphe-patches",
+                                placeholder="owner/repository",
+                                id="bundle-source",
+                            )
+                            yield Input(
+                                "latest",
+                                placeholder="latest or tag",
+                                id="bundle-version",
+                            )
+                        with Horizontal(id="bundle-source-buttons"):
+                            yield Button("Load source", id="load-bundle")
+                            yield Button(
+                                "▣ Show apps", id="show-bundle-apps", disabled=True
+                            )
+                            yield Button(
+                                "↻ Refresh", id="refresh-bundles", variant="primary"
+                            )
                     yield Static(
                         "Community bundles: not loaded",
                         id="bundle-status",
@@ -494,7 +496,7 @@ class MasamuneApp(App[None]):
         self.watch(self, "theme", self._persist_theme, init=False)
         self.set_keymap(self.preferences.keymap())
         self._set_compact_rail(self.size.width <= 40)
-        self.set_class(self.size.width <= 80, "bundle-narrow")
+        self.set_class(self.size.width <= 110, "bundle-narrow")
         self.query_one("#apps", FullWidthDataTable).add_columns(
             "App", "Package", "Architecture", "Mode", "Build"
         )
@@ -531,7 +533,7 @@ class MasamuneApp(App[None]):
 
     def on_resize(self, event) -> None:  # type: ignore[no-untyped-def]
         self._set_compact_rail(event.size.width <= 40)
-        self.set_class(event.size.width <= 80, "bundle-narrow")
+        self.set_class(event.size.width <= 110, "bundle-narrow")
 
     def _set_compact_rail(self, compact: bool) -> None:
         self.set_class(compact, "compact-rail")
