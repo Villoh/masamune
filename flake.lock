@@ -1,0 +1,48 @@
+{
+  "nodes": {
+    "goopdl": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1793207371,
+        "narHash": "sha256-k9MkjYUFC9GPpwtRPbrEivSigV6tfWYKiRtY867Lo5o=",
+        "owner": "Villoh",
+        "repo": "goopdl",
+        "rev": "424b2cd839ef1d8d14e27dd3b2406ab2ca7d6af8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Villoh",
+        "repo": "goopdl",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1793110635,
+        "narHash": "sha256-dhoW6VgFWlaodSY5jrBn+CF2FLmaUvDVgM7+C7T2+NM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "31ecbaca1bdefa45dffc409f0250bd8039ea0010",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "goopdl": "goopdl",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

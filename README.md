@@ -77,6 +77,15 @@ uv tool install masamune-tui
 masamune
 ```
 
+### With Nix
+
+```bash
+nix run github:Villoh/masamune
+```
+
+The flake brings Java 21 and pins Textual to the version the TUI is written against. To install it
+declaratively, add it as an input and use `inputs.masamune.packages.${system}.default`.
+
 ### From source
 
 ```bash
