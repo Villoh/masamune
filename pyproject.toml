@@ -14,7 +14,7 @@ authors = [{ name = "Mikel Villota" }]
 requires-python = ">=3.11,<3.14"
 keywords = ["android", "apk", "morphe", "patcher", "terminal-ui", "masamune"]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 7 - Inactive",
   "Environment :: Console",
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",

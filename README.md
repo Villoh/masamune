@@ -1,5 +1,8 @@
 <!-- markdownlint-disable MD013 -->
 
+> [!WARNING]
+> **This project is no longer maintained.** No further updates, fixes or support will be provided. Feel free to fork it.
+
 <div align="center">
 
 <img src="https://raw.githubusercontent.com/Villoh/masamune/main/assets/logo.png" alt="Masamune logo" width="220">
