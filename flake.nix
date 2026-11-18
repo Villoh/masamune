@@ -10,7 +10,7 @@
   };
 
   outputs =
-    { nixpkgs, ... }@inputs:
+    { self, nixpkgs, ... }@inputs:
     let
       forAllSystems =
         f:
@@ -82,11 +82,23 @@
               ":"
               (pkgs.lib.makeBinPath [ pkgs.jdk21_headless ])
             ];
+            # Only the unit tests (0.5 s): discover does not enter tests/tui (no __init__.py). The
+            # Textual pilot tests there take about 100 s, so they run in `checks.<system>.tests`.
             checkPhase = "python -m unittest discover -s tests";
             pythonImportsCheck = [ "masamune" ];
             meta.mainProgram = "masamune";
           };
         default = masamune;
+      });
+
+      # Unit and TUI tests, for `nix flake check`. Consumers never run an input's checks.
+      checks = forAllSystems (pkgs: {
+        tests = self.packages.${pkgs.stdenv.hostPlatform.system}.masamune.overridePythonAttrs {
+          checkPhase = ''
+            python -m unittest discover -s tests
+            python -m unittest discover -s tests/tui
+          '';
+        };
       });
     };
 }

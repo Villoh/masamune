@@ -259,7 +259,8 @@ Use the CLI or a text editor for automation and unsupported configuration fields
 
 ```bash
 uv sync
-uv run python -m unittest discover -s tests
+uv run python -m unittest discover -s tests       # unit tests
+uv run python -m unittest discover -s tests/tui   # Textual TUI tests, about 100 s
 uv lock --check
 uv build
 ```

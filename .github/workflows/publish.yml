@@ -130,6 +130,7 @@ jobs:
           fi
 
           uv run python -m unittest discover -s tests
+          uv run python -m unittest discover -s tests/tui
           uv build
           uv venv --python 3.13 .release-venv
           uv pip install --python .release-venv/bin/python dist/*.whl
@@ -208,6 +209,7 @@ jobs:
           echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
       - run: uv lock --check
       - run: uv run python -m unittest discover -s tests
+      - run: uv run python -m unittest discover -s tests/tui
       - run: uv build
       - name: Verify wheel in clean environment
         run: |
